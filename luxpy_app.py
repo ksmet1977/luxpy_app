@@ -103,8 +103,8 @@ def calculate(option, df):
     
     if st.sidebar.button('Calculate ' + option):
         if option == 'ANSI/IESTM30':
-            data = spd_to_tm30(df.values.T[[0,index+1],:])
-            axs0, data0 = plot_tm30(data, 
+            data = df.values.T[[0,index+1],:] # spd_to_tm30(df.values.T[[0,index+1],:])
+            axs0, data0 = lx.cri.plot_tm30_report(data, 
                                     source = name, 
                                     manufacturer = manufacturer,
                                     date = date,
