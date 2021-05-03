@@ -13,6 +13,7 @@ from PIL import Image
 # import plotly.graph_objects as go
 
 import luxpy as lx
+from luxpy.toolboxes import photbiochem as ph
 
 logo = plt.imread('LUXPY_logo_new1_small.png')
 
@@ -99,23 +100,52 @@ def calculate(option, df):
         date = st.sidebar.text_input('Date','')
         model = st.sidebar.text_input('Model','')
         notes = st.sidebar.text_input('Notes','')
-    
+        data = df.values.T[[0,index+1],:]
+    elif option == 'Alpha-opic quantities (CIE S026)':
+        data = df.values.T
+    else:
+        data = df.values.T
     
     if st.sidebar.button('Calculate ' + option):
+        
         if option == 'ANSI/IESTM30':
-            data = df.values.T[[0,index+1],:] # spd_to_tm30(df.values.T[[0,index+1],:])
-            axs0, data0 = lx.cri.plot_tm30_report(data, 
-                                    source = name, 
-                                    manufacturer = manufacturer,
-                                    date = date,
-                                    model = model,
-                                    notes = notes,
-                                    save_fig_name = name)
-            st.pyplot(axs0['fig'])
+            #data = df.values.T[[0,index+1],:] # spd_to_tm30(df.values.T[[0,index+1],:])
+            axs, results = lx.cri.plot_tm30_report(data, 
+                                                source = name, 
+                                                manufacturer = manufacturer,
+                                                date = date,
+                                                model = model,
+                                                notes = notes,
+                                                save_fig_name = name)
+            st.pyplot(axs['fig'])
             
             # img = plt.imread(name + '.png')
             # result = Image.fromarray((img[...,:-1]*255).astype(np.uint8))
             # st.markdown(get_image_download_link(result), unsafe_allow_html=True)
+        elif option == 'Alpha-opic quantities (CIE S026)':
+            try:
+                # alpha-opic Ee, -EDI, -DER and -ELR:
+                cieobs = '1931_2'
+                aEe = ph.spd_to_aopicE(data,cieobs = cieobs,actionspectra='CIE-S026',out = 'Eeas')
+     
+                aedi = ph.spd_to_aopicEDI(data,cieobs = cieobs,actionspectra='CIE-S026')
+                ader = ph.spd_to_aopicDER(data, cieobs = cieobs,actionspectra='CIE-S026')
+                aelr = ph.spd_to_aopicELR(data, cieobs = cieobs,actionspectra='CIE-S026')
+                results = {'a-EDI':aedi,'aDER':ader,'aELR':aelr}
+                
+                quants = ['a-Ee, W/m²','a-EDI, lx','a-DER, a.u.','a-ELR, lm/W']
+                tmp_q = np.repeat(quants,len(df.columns[1:]))
+                tmp_n = np.tile(df.columns[1:],len(quants))
+                df_indices = ['{:s}_({:s})'.format(name,quant) for name,quant in zip(tmp_n,tmp_q)]
+                df_res = pd.DataFrame(np.vstack((aEe,aedi,ader,aelr)), 
+                                      columns = ph._PHOTORECEPTORS,
+                                      index = df_indices)
+                st.dataframe(df_res)
+            except:
+                st.markdown('Not implemented yet (03/05/2021)')
+        elif option == "(X,Y,Z), (x,y), (u',v'), (CCT,Duv)":
+            
+            pass
     else:
         data = []
     return data
