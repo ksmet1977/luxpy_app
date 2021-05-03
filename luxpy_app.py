@@ -52,7 +52,7 @@ def get_image_download_link(img):
 def load_spectral_data():
     st.sidebar.markdown("Load spectral data:")
     st.sidebar.checkbox("Column format", True, key = 'options')
-    units = st.sidebar.selectbox('Units',['W/nm [,.m²,.m².sr, ...]','mW/nm [,.m²,.m³.sr, ...]' ])
+    units = st.sidebar.selectbox('Units',['W/nm [,.m²,.m².sr, ...]','mW/nm [,.m²,.m².sr, ...]' ])
     unit_factor = 1.0 if units == 'W/nm [,.m²,.m³.sr, ...]' else 1/1000
     header = 'infer' if st.sidebar.checkbox("Data file has header", False, key = 'header') else None
     sep = st.sidebar.selectbox('Separator',[',','\t',';'])
