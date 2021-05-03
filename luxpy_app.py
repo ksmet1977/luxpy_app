@@ -260,7 +260,7 @@ start = True
             
 def main():
     global start 
-    st.sidebar.image(logo, width=200)
+    st.sidebar.image(logo, width=300)
     link = '[github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
     st.sidebar.markdown(link, unsafe_allow_html=True)
     st.sidebar.markdown('## **Online calculator for lighting and color science**')
