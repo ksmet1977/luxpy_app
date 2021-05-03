@@ -163,7 +163,7 @@ def calculate(option, df):
             st.markdown('*Rcshj: local chroma shift for hue bin j*')
             st.markdown('*Rhshj: local hue shift for hue bin j*')
             st.markdown('*Rfhj: local color fidelity index for hue bin j*')
-            st.markdown('*Rfi: sample color fidelity index for sample i*')
+            st.markdown('*Rfi: specific color fidelity index for sample i*')
         
         elif option == 'CIE 13.3-1995 Ra, Ri quantities':
             d = spd_to_tm30(data)
