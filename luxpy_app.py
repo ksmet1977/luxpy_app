@@ -95,6 +95,8 @@ def display_spectral_input_data(df, file_details, display):
         st.sidebar.pyplot(fig)
     
 def load_LID_file():
+    global start
+    
     st.sidebar.markdown("Load LID data:")
     uploaded_file = st.sidebar.file_uploader("Upload LID (IES/LDT) data file",accept_multiple_files=False,type=['ies','ldt'])
     file_details = ''
@@ -104,7 +106,9 @@ def load_LID_file():
         if os.path.exists(os.path.join(path,uploaded_file.name)): 
             LID = lid.read_lamp_data(os.path.join(path,uploaded_file.name), verbosity = 1)
         else:
+            st.text('{:s} does not exist! Set path!'.format(os.path.join(path,uploaded_file.name)))
             LID = {}
+        start = False
     else:
         LID = {}
         
@@ -112,7 +116,7 @@ def load_LID_file():
 
 
 def display_LID_file(LID):
-    global start
+    
     st.markdown('**Luminous Intensity Distiribution (polar plot and render)**')
     # or combine draw and render (but use only 2D image):
     if len(LID)>0:
