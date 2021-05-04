@@ -186,16 +186,17 @@ def calculate(option, df):
             # st.markdown(get_image_download_link(result), unsafe_allow_html=True)
         elif option == 'ANSI/IESTM30 quantities':
             d = spd_to_tm30(data)
+            LER = lx.spd_to_ler(d['St'])
             xy = lx.xyz_to_Yxy(d['xyztw_cct'])[...,1:]
             uv = lx.xyz_to_Yuv(d['xyztw_cct'])[...,1:]
-            quants = ['CCT','Duv'] + ['x','y',"u'","v'"] + ['Rf', 'Rg']
+            quants = ['CCT','Duv'] + ['x','y',"u'","v'",'LER'] + ['Rf', 'Rg']
             quants += ['Rcsh{:1.0f}'.format(i+1) for i in range(d['Rcshj'].shape[0])] 
             quants += ['Rhsh{:1.0f}'.format(i+1) for i in range(d['Rhshj'].shape[0])] 
             quants += ['Rfh{:1.0f}'.format(i+1) for i in range(d['Rfhj'].shape[0])]
             quants += ['Rf{:1.0f}'.format(i+1) for i in range(d['Rfi'].shape[0])]
             
             df_res = pd.DataFrame(np.vstack((d['cct'].T,d['duv'].T,
-                                             xy.T,uv.T,
+                                             xy.T,uv.T,LER.T,
                                              d['Rf'], d['Rg'],
                                              d['Rcshj'],d['Rhshj'],d['Rfhj'],d['Rfi'])).T,
                                    columns = quants,
@@ -208,6 +209,7 @@ def calculate(option, df):
             st.markdown('*Duv: distance from Planckian locus*')
             st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
             st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
+            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)**')
             st.markdown('*Rf: general color fidelity index*')
             st.markdown('*Rg: gamut area index*')
             st.markdown('*Rcshj: local chroma shift for hue bin j*')
@@ -217,16 +219,17 @@ def calculate(option, df):
         
         elif option == 'CIE 13.3-1995 Ra, Ri quantities':
             d = spd_to_tm30(data)
+            LER = lx.spd_to_ler(d['St'])
             Ra, _ = lx.cri.spd_to_cri(d['St'], cri_type = 'ciera', out = 'Rf,Rfi')
             _, Ri = lx.cri.spd_to_cri(d['St'], cri_type = 'ciera-14', out = 'Rf,Rfi')
 
             xy = lx.xyz_to_Yxy(d['xyztw_cct'])[...,1:]
             uv = lx.xyz_to_Yuv(d['xyztw_cct'])[...,1:]
-            quants = ['CCT','Duv'] + ['x','y',"u'","v'"] + ['Ra']
+            quants = ['CCT','Duv'] + ['x','y',"u'","v'",'LER'] + ['Ra']
             quants += ['R{:1.0f}'.format(i+1) for i in range(Ri.shape[0])]
             
             df_res = pd.DataFrame(np.vstack((d['cct'].T,d['duv'].T,
-                                             xy.T,uv.T,
+                                             xy.T,uv.T,LER.T,
                                              Ra, Ri)).T,
                                    columns = quants,
                                    index = names)
@@ -238,19 +241,21 @@ def calculate(option, df):
             st.markdown('*Duv: distance from Planckian locus*')
             st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
             st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
+            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)**')
             st.markdown('*Ra: general color fidelity index*')
             st.markdown('*Ri: specific color fidelity index for sample i*')
   
         elif option == 'CIE 224:2017 Rf, Rfi quantities':
             d = spd_to_tm30(data)
+            LER = lx.spd_to_ler(d['St'])
             Ra,Ri = lx.cri.spd_to_cierf(d['St'], out = 'Rf,Rfi')
             xy = lx.xyz_to_Yxy(d['xyztw_cct'])[...,1:]
             uv = lx.xyz_to_Yuv(d['xyztw_cct'])[...,1:]
-            quants = ['CCT','Duv'] + ['x','y',"u'","v'"] + ['Rf']
+            quants = ['CCT','Duv'] + ['x','y',"u'","v'",'LER'] + ['Rf']
             quants += ['Rf{:1.0f}'.format(i+1) for i in range(Ri.shape[0])]
             
             df_res = pd.DataFrame(np.vstack((d['cct'].T,d['duv'].T,
-                                             xy.T,uv.T,
+                                             xy.T,uv.T, LER.T,
                                              Ra, Ri)).T,
                                    columns = quants,
                                    index = names)
@@ -262,6 +267,7 @@ def calculate(option, df):
             st.markdown('*Duv: distance from Planckian locus*')
             st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
             st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
+            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)**')
             st.markdown('*Rf: general color fidelity index*')
             st.markdown('*Rfi: specific color fidelity index for sample i*')
 
