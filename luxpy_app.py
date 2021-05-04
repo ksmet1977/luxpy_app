@@ -117,9 +117,10 @@ def load_LID_file():
 
 def display_LID_file(LID):
     
-    st.markdown('**Luminous Intensity Distiribution (polar plot and render)**')
-    # or combine draw and render (but use only 2D image):
+        # or combine draw and render (but use only 2D image):
     if len(LID)>0:
+        st.markdown('**Luminous Intensity Distiribution (polar plot and render)**')
+
         fig = plt.figure(figsize=[14,7])
         axs = [fig.add_subplot(121, projection = 'polar'),
                fig.add_subplot(122)]
