@@ -14,6 +14,7 @@ from PIL import Image
 
 import luxpy as lx
 from luxpy.toolboxes import photbiochem as ph
+from luxpy.toolboxes import iolidfiles as lid 
 
 logo = plt.imread('LUXPY_logo_new1_small.png')
 
@@ -91,6 +92,44 @@ def display_spectral_input_data(df, file_details, display):
         lx.SPD(df.values.T).plot(wavelength_bar=False, label = df.columns[1:])
         ax.legend()
         st.sidebar.pyplot(fig)
+    
+def load_LID_file():
+    st.sidebar.markdown("Load LID data:")
+    uploaded_file = st.sidebar.file_uploader("Upload LID (IES/LDT) data file",accept_multiple_files=False,type=['ies','ldt'])
+    file_details = ''
+    if uploaded_file is not None:
+        file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
+        LID = lid.read_lamp_data(uploaded_file.name, verbosity = 1)
+    else:
+        LID = {}
+        
+    return LID
+
+
+def display_LID_file(LID):
+    global start
+    st.markdown('**Luminous Intensity Distiribution (polar plot and render)**')
+    # or combine draw and render (but use only 2D image):
+    if len(LID)>0:
+        fig = plt.figure(figsize=[14,7])
+        axs = [fig.add_subplot(121, projection = 'polar'),
+               fig.add_subplot(122)]
+        lid.draw_lid(LID, ax = axs[0])
+        Lv2D = lid.render_lid(LID, sensor_resolution = 100,
+                        sensor_position = [0,-1,0.8], sensor_n = [0,1,-0.2], fov = (90,90), Fd = 2,
+                        luminaire_position = [0,1.3,2], luminaire_n = [0,0,-1],
+                        wall_center = [0,2,1], wall_n = [0,-1,0], wall_width = 4, wall_height = 2, wall_rho = 1,
+                        floor_center = [0,1,0], floor_n = [0,0,1], floor_width = 4, floor_height = 2, floor_rho = 1,
+                        ax3D = None, ax2D = axs[1], join_axes = False, 
+                        plot_luminaire_position = True, plot_lumiaire_rays = False, plot_luminaire_lid = True,
+                        plot_sensor_position = True, plot_sensor_pixels = False, plot_sensor_rays = False, 
+                        plot_wall_edges = True, plot_wall_luminance = True, plot_wall_intersections = False,
+                        plot_floor_edges = True, plot_floor_luminance = True, plot_floor_intersections = False,
+                        out = 'Lv2D')
+        st.pyplot(fig)
+        start = False
+    
+    return start
 
 def calculate(option, df):
     global start
@@ -271,7 +310,8 @@ def main():
                                                           'ANSI/IESTM30 graphic report',
                                                           'CIE 13.3-1995 Ra, Ri quantities',
                                                           'CIE 224:2017 Rf, Rfi quantities',
-                                                          'Alpha-opic quantities (CIE S026)'))
+                                                          'Alpha-opic quantities (CIE S026)',
+                                                          'Plot/render Luminous Intensity Distribution (IES/LDT files)'))
     
     if option in ('ANSI/IESTM30 quantities',
                   'ANSI/IESTM30 graphic report',
@@ -281,6 +321,10 @@ def main():
         df, file_details, display = load_spectral_data()
         display_spectral_input_data(df, file_details, display)
         data,start = calculate(option, df)
+    elif option in ('Plot/render Luminous Intensity Distribution (IES/LDT files)',):
+        lid_dict = load_LID_file()
+        if st.sidebar.button('Plot/Render LID'):
+            start = display_LID_file(lid_dict)
     else:
 
         df, file_details, display = None, {}, 'No'
