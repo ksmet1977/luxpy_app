@@ -105,12 +105,12 @@ def load_LID_file():
         if os.path.exists(os.path.join(path,uploaded_file.name)): 
             LID = lid.read_lamp_data(os.path.join(path,uploaded_file.name), verbosity = 1)
         else:
-            st.text('{:s} does not exist, manually set path in box!'.format(os.path.join(path,uploaded_file.name)))
+            st.text('{:s} does not exist, manually set path in box and press ENTER!'.format(os.path.join(path,uploaded_file.name)))
             LID = {}
         start = False
     else:
         LID = {}
-        
+        st.text('No LID data file selected, load file first!'.format(os.path.join(path,'')))
     return LID
 
 
@@ -137,6 +137,8 @@ def display_LID_file(LID):
                         out = 'Lv2D')
         st.pyplot(fig)
         start = False
+    else:
+        start = True
     
     return start
 
@@ -167,7 +169,7 @@ def calculate(option, df):
         data = df.values.T
     
         
-    if st.sidebar.button('Calculate ' + option):
+    if st.sidebar.button('RUN'):
         start = False
         if option == 'ANSI/IESTM30 graphic report':
             axs, results = lx.cri.plot_tm30_report(data, 
@@ -310,9 +312,9 @@ def main():
     global start 
     st.sidebar.image(logo, width=300)
     st.sidebar.markdown('## **Online calculator for lighting and color science**')
+    st.sidebar.markdown('Luxpy {:s}, App {:s}'.format(lx.__version__, __version__))
     link = 'Code: [github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
     st.sidebar.markdown(link, unsafe_allow_html=True)
-    st.sidebar.markdown('Luxpy {:s}, App {:s}'.format(lx.__version__, __version__))
     st.sidebar.markdown('Code author: Prof. dr. K.A.G. Smet')
     st.sidebar.markdown("""---""")
     st.sidebar.title('Control panel')
@@ -334,23 +336,26 @@ def main():
         data,start = calculate(option, df)
     elif option in ('Plot/render Luminous Intensity Distribution (IES/LDT files)',):
         lid_dict = load_LID_file()
-        if st.sidebar.button('Plot/Render LID'):
+        if st.sidebar.button('RUN'):
             start = display_LID_file(lid_dict)
     else:
-
         df, file_details, display = None, {}, 'No'
+     
+    if (option != '') &  (start):
+       st.text('Scroll down control panel...')
+
         
     if start:
         st.markdown('### Usage:')
         st.markdown(' 1. Select calculation option.')
         st.markdown(' 2. Load data + set data details.')
-        st.markdown(' 3. Press calculate.')
+        st.markdown(' 3. Press RUN.')
         
     st.markdown("""---""")
     st.markdown("If you use **LUXPY**, please cite the following tutorial paper published in LEUKOS:")
     st.markdown("**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](10.1080/15502724.2018.1518717)")
     st.markdown("""---""")
-    start = False
+    #start = False
     
 if __name__ == '__main__':
     main()
