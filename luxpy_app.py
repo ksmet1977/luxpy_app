@@ -16,7 +16,7 @@ from luxpy.toolboxes import iolidfiles as lid
 
 logo = plt.imread('LUXPY_logo_new1_small.png')
 
-__version__ = 'v0.0.16'
+__version__ = 'v0.0.18'
 
 def spd_to_tm30(spd):
     return lx.cri._tm30_process_spd(spd, cri_type = 'ies-tm30')
