@@ -330,7 +330,8 @@ def main():
                                                           'CIE 13.3-1995 Ra, Ri quantities',
                                                           'CIE 224:2017 Rf, Rfi quantities',
                                                           'Alpha-opic quantities (CIE S026)',
-                                                          'Plot/render Luminous Intensity Distribution (IES/LDT files)'))
+                                                          # 'Plot/render Luminous Intensity Distribution (IES/LDT files)'
+                                                          ))
     
     if option in ('ANSI/IESTM30 quantities',
                   'ANSI/IESTM30 graphic report',
