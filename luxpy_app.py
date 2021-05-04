@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
 import base64
 from io import BytesIO
 from PIL import Image
@@ -99,7 +100,11 @@ def load_LID_file():
     file_details = ''
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
-        LID = lid.read_lamp_data(uploaded_file.name, verbosity = 1)
+        path = st.sidebar.text_input("Data path to LID file (must be set!)", '')
+        if os.path.exists(os.path.join(path,uploaded_file.name)): 
+            LID = lid.read_lamp_data(os.path.join(path,uploaded_file.name), verbosity = 1)
+        else:
+            LID = {}
     else:
         LID = {}
         
