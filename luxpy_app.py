@@ -9,15 +9,14 @@ import base64
 from io import BytesIO
 from PIL import Image
 
-# import plotly.express as px
-# from plotly.subplots import make_subplots
-# import plotly.graph_objects as go
 
 import luxpy as lx
 from luxpy.toolboxes import photbiochem as ph
 from luxpy.toolboxes import iolidfiles as lid 
 
 logo = plt.imread('LUXPY_logo_new1_small.png')
+
+__version__ = 'v0.0.13'
 
 def spd_to_tm30(spd):
     return lx.cri._tm30_process_spd(spd, cri_type = 'ies-tm30')
@@ -100,13 +99,13 @@ def load_LID_file():
     st.sidebar.markdown("Load LID data:")
     uploaded_file = st.sidebar.file_uploader("Upload LID (IES/LDT) data file",accept_multiple_files=False,type=['ies','ldt'])
     file_details = ''
+    path = st.sidebar.text_input("Data path to LID file", '')
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
-        path = st.sidebar.text_input("Data path to LID file (must be set!)", '')
         if os.path.exists(os.path.join(path,uploaded_file.name)): 
             LID = lid.read_lamp_data(os.path.join(path,uploaded_file.name), verbosity = 1)
         else:
-            st.text('{:s} does not exist! Set path!'.format(os.path.join(path,uploaded_file.name)))
+            st.text('{:s} does not exist, manually set path in box!'.format(os.path.join(path,uploaded_file.name)))
             LID = {}
         start = False
     else:
@@ -310,9 +309,11 @@ start = True
 def main():
     global start 
     st.sidebar.image(logo, width=300)
-    link = '[github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
-    st.sidebar.markdown(link, unsafe_allow_html=True)
     st.sidebar.markdown('## **Online calculator for lighting and color science**')
+    link = 'Code: [github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
+    st.sidebar.markdown(link, unsafe_allow_html=True)
+    st.sidebar.markdown('Luxpy {:s}, App {:s}'.format(lx.__version__, __version__))
+    st.sidebar.markdown('Code author: Prof. dr. K.A.G. Smet')
     st.sidebar.markdown("""---""")
     st.sidebar.title('Control panel')
     option = st.sidebar.selectbox("Calculation options", ('',
@@ -348,6 +349,7 @@ def main():
     st.markdown("""---""")
     st.markdown("If you use **LUXPY**, please cite the following tutorial paper published in LEUKOS:")
     st.markdown("**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](10.1080/15502724.2018.1518717)")
+    st.markdown("""---""")
     start = False
     
 if __name__ == '__main__':
