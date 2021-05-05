@@ -241,7 +241,7 @@ def calc_cies026_quants(data, names, **kwargs):
 
 def calc_colorimetric_quants(data, names, **kwargs):
     rfl = kwargs.get('rfl',None)
-    xyz, xyzw = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative_xyz'], rfl = kwargs.get('rfl',None))
+    xyz, xyzw = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative_xyz'], rfl = kwargs.get('rfl',None), out = 2)
     if rfl is not None: xyz = xyz[:,0,:] # get rid of light source dimension
     cct, duv = lx.xyz_to_cct(xyz, out ='cct,duv')
     xy = lx.xyz_to_Yxy(xyz)[...,1:]
