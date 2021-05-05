@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 import os
 import base64
-from io import BytesIO
+from io import BytesIO, StringIO
 from PIL import Image
 
 
@@ -99,18 +99,15 @@ def load_LID_file():
     st.sidebar.markdown("Load LID data:")
     uploaded_file = st.sidebar.file_uploader("Upload LID (IES/LDT) data file",accept_multiple_files=False,type=['ies','ldt'])
     file_details = ''
-    path = st.sidebar.text_input("Data path to LID file", '')
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
-        if os.path.exists(os.path.join(path,uploaded_file.name)): 
-            LID = lid.read_lamp_data(os.path.join(path,uploaded_file.name), verbosity = 1)
-        else:
-            st.text('{:s} does not exist, manually set path in box and press ENTER!'.format(os.path.join(path,uploaded_file.name)))
-            LID = {}
+        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        LID = lid.read_lamp_data(stringio.read(), verbosity = 1)
         start = False
+        st.sidebar.write(file_details)
     else:
         LID = {}
-        st.text('No LID data file selected, load file first!'.format(os.path.join(path,'')))
+        st.text('No LID data file selected, load file first!')
     return LID
 
 
