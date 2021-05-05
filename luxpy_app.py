@@ -39,14 +39,17 @@ def plot_tm30(data,
 
 
 def load_spectral_data():
-    st.sidebar.markdown("Load spectral data:")
-    st.sidebar.checkbox("Column format", True, key = 'options')
-    units = st.sidebar.selectbox('Units',['W/nm [,.m²,.m².sr, ...]','mW/nm [,.m²,.m².sr, ...]' ])
+    st.sidebar.markdown("### Load spectral data:")
+    
+    lspd = st.sidebar.beta_expander("Data-format options")
+    lspd.checkbox("Column format", True, key = 'options')
+    units = lspd.selectbox('Units',['W/nm [,.m²,.m².sr, ...]','mW/nm [,.m²,.m².sr, ...]' ])
     unit_factor = 1.0 if units == 'W/nm [,.m²,.m².sr, ...]' else 1/1000
-    header = 'infer' if st.sidebar.checkbox("Data file has header", False, key = 'header') else None
-    sep = st.sidebar.selectbox('Separator',[',','\t',';'])
-
-    uploaded_file = st.sidebar.file_uploader("Upload spectral data file",accept_multiple_files=False,type=['csv','dat','txt'])
+    header = 'infer' if lspd.checkbox("Data file has header", False, key = 'header') else None
+    sep = lspd.selectbox('Separator',[',','\t',';'])
+    
+    lspd1 = st.sidebar.beta_expander("Upload Spectral Data",True)
+    uploaded_file = lspd1.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt'])
     file_details = ''
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
@@ -55,44 +58,50 @@ def load_spectral_data():
         if header == 'infer':
             names = df.columns[1:]
         else:
-            names = ['S{:1.0f}'.format(i) for i in range(len(df.columns)-1)]
+            names = ['S{:1.0f}'.format(i+1) for i in range(len(df.columns)-1)]
         df.columns = ['nm'] + names
     else:
         df = pd.DataFrame(lx._CIE_D65.copy().T) # D65 default
         names = 'D65 (default)'
         df.columns = ['nm',names]
         
-        
-    display = st.sidebar.selectbox("Display input data", ('Graph','DataFrame','No'))
-    return df, file_details, display
+    return df, file_details, 'Graph'
     
+placeholder_spdname = None
 def display_spectral_input_data(df, file_details, display):
+    global placeholder_spdname
+    # st.sidebar.markdown("""---""")
+    st.sidebar.markdown('### Input data:')
+    dspd = st.sidebar.beta_expander('Show input data')   
+    display = dspd.selectbox("Display format", ('Graph','DataFrame','No'))
+
     if display != 'No':
-        st.sidebar.title('Spectral input data')
-        st.sidebar.write(file_details)
+        #st.sidebar.title('Spectral input data')
+        dspd.write(file_details)
     if display == 'No':
         pass
     elif display == 'DataFrame':
-        st.sidebar.dataframe(df)
+        dspd.dataframe(df)
     else:
         fig, ax = plt.subplots(figsize=(7, 3))
         plt.sca(ax)
         lx.SPD(df.values.T).plot(wavelength_bar=False, label = df.columns[1:])
         ax.legend()
-        st.sidebar.pyplot(fig)
+        dspd.pyplot(fig)
+    placeholder_spdname = st.sidebar.empty() # placeholder for spetrum name
     
 def load_LID_file():
     global start
-    
-    st.sidebar.markdown("Load LID data:")
-    uploaded_file = st.sidebar.file_uploader("Upload LID (IES/LDT) data file",accept_multiple_files=False,type=['ies','ldt'])
+    st.sidebar.markdown("### Load LID data:")
+    llid = st.sidebar.beta_expander("Upload LID (IES/LDT) data file")
+    uploaded_file = llid.file_uploader("",accept_multiple_files=False,type=['ies','ldt'])
     file_details = ''
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
         stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
         LID = lid.read_lamp_data(stringio.read(), verbosity = 1)
         start = False
-        st.sidebar.write(file_details)
+        llid.write(file_details)
     else:
         LID = {}
         st.text('No LID data file selected, load file first!')
@@ -127,7 +136,7 @@ def display_LID_file(LID):
     
     return start
 
-def calculate(option, df):
+def calculate(option, df, **kwargs):
     global start
     df_res = None
     if option == 'ANSI/IESTM30 graphic report':
@@ -141,9 +150,10 @@ def calculate(option, df):
     elif ((option == 'Alpha-opic quantities (CIE S026)') | 
          (option == 'ANSI/IESTM30 quantities') |
          (option == 'CIE 13.3-1995 Ra, Ri quantities') |
-         (option == 'CIE 224:2017 Rf, Rfi quantities')):
+         (option == 'CIE 224:2017 Rf, Rfi quantities'),
+         (option == "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)")):
         spd_opts = ['all'] + list(df.columns[1:])
-        name = st.sidebar.selectbox('Select spectrum',spd_opts)
+        name = placeholder_spdname.selectbox('Select spectrum',spd_opts)
         if name != 'all':
             index = spd_opts.index(name) - 1
             data = df.values.T[[0,index+1],:]
@@ -151,10 +161,11 @@ def calculate(option, df):
         else:
             data = df.values.T
             names = df.columns[1:]
+        rfl = kwargs.get('rfl',None)
     else:
         data = df.values.T
     
-        
+    st.sidebar.markdown("""---""")
     if st.sidebar.button('RUN'):
         start = False
         if option == 'ANSI/IESTM30 graphic report':
@@ -285,12 +296,33 @@ def calculate(option, df):
                 st.markdown('*DER: Daylight Efficacy Ratio*')
                 st.markdown('*ELR: Efficacy of Luminous Radiation (W/lm)*')
                 
-                
             except:
                 st.markdown('Not implemented yet (03/05/2021)')
-        elif option == "(X,Y,Z), (x,y), (u',v'), (CCT,Duv)":
+                
+        elif option == "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)":
+            if rfl is not None:
+                xyz, xyzw = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative_xyz'], rfl = kwargs['rfl'])
+            else:
+                xyz = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative_xyz'])
+            cct, duv = lx.xyz_to_cct(xyz, out ='cct,duv')
+            xy = lx.xyz_to_Yxy(xyz)[...,1:]
+            uv = lx.xyz_to_Yuv(xyz)[...,1:]
+            quants = ['X','Y','Z'] + ['x','y',"u'","v'"] + ['CCT','Duv']
             
-            pass
+            df_res = pd.DataFrame(np.vstack((xyz.T,
+                                             xy.T,uv.T,
+                                             cct.T, duv.T,
+                                             )).T,
+                                   columns = quants,
+                                   index = names)
+            
+            st.markdown("**(X,Y,Z), (x,y), (u',v'), (CCT,Duv) for CIE observer {:s}**".format(kwargs['cieobs']))
+            st.dataframe(df_res)
+            st.markdown('*XYZ: CIE X,Y,Z tristimulus values*')
+            st.markdown('*xy: CIE xy chromaticity coordinates*')
+            st.markdown("*u'v': CIE 1976 u'v' chromaticity coordinates*")
+            st.markdown('*CCT: Correlated Color Temperature (K)*')
+            st.markdown('*Duv: distance from Planckian locus*')
 
     else:
         start = False
@@ -315,7 +347,7 @@ def main():
     link = 'Code: [github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
     st.sidebar.markdown(link, unsafe_allow_html=True)
     st.sidebar.markdown('Code author: Prof. dr. K.A.G. Smet')
-    st.sidebar.markdown("""---""")
+    # st.sidebar.markdown("""---""")
     st.sidebar.title('Control panel')
     option = st.sidebar.selectbox("Calculation options", ('',
                                                           'ANSI/IESTM30 quantities', 
@@ -323,9 +355,10 @@ def main():
                                                           'CIE 13.3-1995 Ra, Ri quantities',
                                                           'CIE 224:2017 Rf, Rfi quantities',
                                                           'Alpha-opic quantities (CIE S026)',
-                                                          'Plot/render Luminous Intensity Distribution (IES/LDT files)'
+                                                          "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)",
+                                                          'Plot Luminous Intensity Distribution (IES/LDT files)'
                                                           ))
-    
+    st.sidebar.markdown("""---""")
     if option in ('ANSI/IESTM30 quantities',
                   'ANSI/IESTM30 graphic report',
                   'CIE 13.3-1995 Ra, Ri quantities',
@@ -333,9 +366,18 @@ def main():
                   'Alpha-opic quantities (CIE S026)'):
         df, file_details, display = load_spectral_data()
         display_spectral_input_data(df, file_details, display)
-        data,start, df_download = calculate(option, df)
-    elif option in ('Plot/render Luminous Intensity Distribution (IES/LDT files)',):
+        data, start, df_download = calculate(option, df)
+    elif (option == "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)"):
+        df, file_details, display = load_spectral_data()
+        display_spectral_input_data(df, file_details, display)
+        # st.sidebar.markdown("""---""")
+        st.sidebar.markdown("### XYZ options:")
+        cieobs = st.sidebar.selectbox('CIE observer',[x for x in lx._CMF['types'] if (x!='cie_std_dev_obs_f1')])
+        relative_xyz = st.sidebar.checkbox("Relative XYZ [Ymax=100]", True, key = 'relative_xyz')
+        data, start, df_download = calculate(option, df, cieobs = cieobs, relative_xyz = relative_xyz)
+    elif option in ('Plot Luminous Intensity Distribution (IES/LDT files)',):
         lid_dict = load_LID_file()
+        st.sidebar.markdown("""---""")
         if st.sidebar.button('RUN'):
             start = display_LID_file(lid_dict)
     else:
@@ -348,7 +390,7 @@ def main():
     if start:
         st.markdown('### Usage:')
         st.markdown(' 1. Select calculation option.')
-        st.markdown(' 2. Load data (set) + set data details.')
+        st.markdown(' 2. Load data (set) (and set data format options; default = csv in column format.')
         st.markdown(' 3. Press RUN.')
     
     if df_download is not None:
