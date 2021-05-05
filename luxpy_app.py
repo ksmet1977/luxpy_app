@@ -38,18 +38,6 @@ def plot_tm30(data,
                             save_fig_name = save_fig_name)
 
 
-def get_image_download_link(img):
-	"""Generates a link allowing the PIL image to be downloaded
-	in:  PIL image
-	out: href string
-	"""
-	buffered = BytesIO()
-	img.save(buffered, format="PNG")
-	img_str = base64.b64encode(buffered.getvalue()).decode()
-	href = f'<a href="data:file/png;base64,{img_str}">Download result</a>'
-	return href
-
-
 def load_spectral_data():
     st.sidebar.markdown("Load spectral data:")
     st.sidebar.checkbox("Column format", True, key = 'options')
@@ -141,6 +129,7 @@ def display_LID_file(LID):
 
 def calculate(option, df):
     global start
+    df_res = None
     if option == 'ANSI/IESTM30 graphic report':
         name = st.sidebar.selectbox('Select spectrum',df.columns[1:])
         index = list(df.columns[1:]).index(name)
@@ -206,7 +195,7 @@ def calculate(option, df):
             st.markdown('*Duv: distance from Planckian locus*')
             st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
             st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
-            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)**')
+            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
             st.markdown('*Rf: general color fidelity index*')
             st.markdown('*Rg: gamut area index*')
             st.markdown('*Rcshj: local chroma shift for hue bin j*')
@@ -238,7 +227,7 @@ def calculate(option, df):
             st.markdown('*Duv: distance from Planckian locus*')
             st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
             st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
-            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)**')
+            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
             st.markdown('*Ra: general color fidelity index*')
             st.markdown('*Ri: specific color fidelity index for sample i*')
   
@@ -264,7 +253,7 @@ def calculate(option, df):
             st.markdown('*Duv: distance from Planckian locus*')
             st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
             st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
-            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)**')
+            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
             st.markdown('*Rf: general color fidelity index*')
             st.markdown('*Rfi: specific color fidelity index for sample i*')
 
@@ -306,13 +295,20 @@ def calculate(option, df):
     else:
         start = False
         data = []
-    return data, start
+    return data, start, df_res
  
+    
+def get_table_download_link_csv(df):
+    csv = df.to_csv().encode()
+    b64 = base64.b64encode(csv).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="luxpy_app_download.csv" target="_blank">Download csv file</a>'
+    return href
 
 start = True           
             
 def main():
     global start 
+    df_download = None
     st.sidebar.image(logo, width=300)
     st.sidebar.markdown('## **Online calculator for lighting and color science**')
     st.sidebar.markdown('Luxpy {:s}, App {:s}'.format(lx.__version__, __version__))
@@ -337,7 +333,7 @@ def main():
                   'Alpha-opic quantities (CIE S026)'):
         df, file_details, display = load_spectral_data()
         display_spectral_input_data(df, file_details, display)
-        data,start = calculate(option, df)
+        data,start, df_download = calculate(option, df)
     elif option in ('Plot/render Luminous Intensity Distribution (IES/LDT files)',):
         lid_dict = load_LID_file()
         if st.sidebar.button('RUN'):
@@ -352,9 +348,12 @@ def main():
     if start:
         st.markdown('### Usage:')
         st.markdown(' 1. Select calculation option.')
-        st.markdown(' 2. Load data + set data details.')
+        st.markdown(' 2. Load data (set) + set data details.')
         st.markdown(' 3. Press RUN.')
-        
+    
+    if df_download is not None:
+        st.markdown("""---""")
+        st.markdown(get_table_download_link_csv(df_download), unsafe_allow_html=True)    
     st.markdown("""---""")
     st.markdown("If you use **LUXPY**, please cite the following tutorial paper published in LEUKOS:")
     st.markdown("**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](https://doi.org/10.1080/15502724.2018.1518717)")
