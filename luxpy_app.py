@@ -37,6 +37,17 @@ def plot_tm30(data,
                             notes = notes,
                             save_fig_name = save_fig_name)
 
+def get_image_download_link(img):
+	"""Generates a link allowing the PIL image to be downloaded
+	in:  PIL image
+	out: href string
+	"""
+	buffered = BytesIO()
+	img.save(buffered, format="JPEG")
+	img_str = base64.b64encode(buffered.getvalue()).decode()
+# 	href = f'<a href="data:file/jpg;base64,{img_str}">luxpy_app_download.csv</a>'
+	href = f'<a href="data:file/jpg;base64,{img_str}" download="luxpy_app_download.png" target="_blank">Download image file</a>'
+	return href
 
 def load_spectral_data():
     st.sidebar.markdown("### Load spectral data:")
@@ -104,7 +115,8 @@ def load_LID_file():
         llid.write(file_details)
     else:
         LID = {}
-        st.text('No LID data file selected, load file first!')
+        st.sidebar.text('No LID data file selected.')
+        st.sidebar.text('Load file first!')
     return LID
 
 
@@ -130,6 +142,8 @@ def display_LID_file(LID):
                         plot_floor_edges = True, plot_floor_luminance = True, plot_floor_intersections = False,
                         out = 'Lv2D')
         st.pyplot(fig)
+        st.text("To download image, right-click and select 'Save Image As ...'")
+           
         start = False
     else:
         start = True
@@ -142,10 +156,11 @@ def calculate(option, df, **kwargs):
     if option == 'ANSI/IESTM30 graphic report':
         name = st.sidebar.selectbox('Select spectrum',df.columns[1:])
         index = list(df.columns[1:]).index(name)
-        manufacturer = st.sidebar.text_input('Manufacturer','')
-        date = st.sidebar.text_input('Date','')
-        model = st.sidebar.text_input('Model','')
-        notes = st.sidebar.text_input('Notes','')
+        linfo = st.sidebar.beta_expander('Set additional info for report')
+        manufacturer = linfo.text_input('Manufacturer','')
+        date = linfo.text_input('Date','')
+        model = linfo.text_input('Model','')
+        notes = linfo.text_input('Notes','')
         data = df.values.T[[0,index+1],:]
     elif ((option == 'Alpha-opic quantities (CIE S026)') | 
          (option == 'ANSI/IESTM30 quantities') |
@@ -175,12 +190,18 @@ def calculate(option, df, **kwargs):
                                                 date = date,
                                                 model = model,
                                                 notes = notes,
-                                                save_fig_name = name)
+                                                save_fig_name = None)
+            # plt.sca(axs['fig'])
+            # canvas = plt.gca().figure.canvas
+            # canvas.draw()
+            # data = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
+            # buf = data.reshape(canvas.get_width_height()[::-1] + (3,))
+            # w, h, d = buf.shape
+            # image = Image.fromstring( "RGBA", ( w ,h ), buf.tostring( ) )
             st.pyplot(axs['fig'])
+            # st.markdown(get_image_download_link(image), unsafe_allow_html=True)
+            st.text("To download image, right-click and select 'Save Image As ...'")
             
-            # img = plt.imread(name + '.png')
-            # result = Image.fromarray((img[...,:-1]*255).astype(np.uint8))
-            # st.markdown(get_image_download_link(result), unsafe_allow_html=True)
         elif option == 'ANSI/IESTM30 quantities':
             d = spd_to_tm30(data)
             LER = lx.spd_to_ler(d['St'])
@@ -201,18 +222,18 @@ def calculate(option, df, **kwargs):
             
             st.markdown('**ANSI/IES TM30 Quantities (CCT, Duv, Rf,Rg, ...)**')
             st.dataframe(df_res)
-            
-            st.markdown('*CCT: Correlated Color Temperature (K)*')
-            st.markdown('*Duv: distance from Planckian locus*')
-            st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
-            st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
-            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
-            st.markdown('*Rf: general color fidelity index*')
-            st.markdown('*Rg: gamut area index*')
-            st.markdown('*Rcshj: local chroma shift for hue bin j*')
-            st.markdown('*Rhshj: local hue shift for hue bin j*')
-            st.markdown('*Rfhj: local color fidelity index for hue bin j*')
-            st.markdown('*Rfi: specific color fidelity index for sample i*')
+            cpt = st.beta_expander('Table legend')
+            cpt.markdown('*CCT: Correlated Color Temperature (K)*')
+            cpt.markdown('*Duv: distance from Planckian locus*')
+            cpt.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
+            cpt.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
+            cpt.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
+            cpt.markdown('*Rf: general color fidelity index*')
+            cpt.markdown('*Rg: gamut area index*')
+            cpt.markdown('*Rcshj: local chroma shift for hue bin j*')
+            cpt.markdown('*Rhshj: local hue shift for hue bin j*')
+            cpt.markdown('*Rfhj: local color fidelity index for hue bin j*')
+            cpt.markdown('*Rfi: specific color fidelity index for sample i*')
         
         elif option == 'CIE 13.3-1995 Ra, Ri quantities':
             d = spd_to_tm30(data)
@@ -233,14 +254,14 @@ def calculate(option, df, **kwargs):
             
             st.markdown('**CIE 13.3-1995 Ra, Ri quantities**')
             st.dataframe(df_res)
-            
-            st.markdown('*CCT: Correlated Color Temperature (K)*')
-            st.markdown('*Duv: distance from Planckian locus*')
-            st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
-            st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
-            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
-            st.markdown('*Ra: general color fidelity index*')
-            st.markdown('*Ri: specific color fidelity index for sample i*')
+            cpt = st.beta_expander('Table legend')
+            cpt.markdown('*CCT: Correlated Color Temperature (K)*')
+            cpt.markdown('*Duv: distance from Planckian locus*')
+            cpt.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
+            cpt.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
+            cpt.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
+            cpt.markdown('*Ra: general color fidelity index*')
+            cpt.markdown('*Ri: specific color fidelity index for sample i*')
   
         elif option == 'CIE 224:2017 Rf, Rfi quantities':
             d = spd_to_tm30(data)
@@ -259,14 +280,14 @@ def calculate(option, df, **kwargs):
             
             st.markdown('**CIE 224:2017 Rf, Rfi quantities**')
             st.dataframe(df_res)
-            
-            st.markdown('*CCT: Correlated Color Temperature (K)*')
-            st.markdown('*Duv: distance from Planckian locus*')
-            st.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
-            st.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
-            st.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
-            st.markdown('*Rf: general color fidelity index*')
-            st.markdown('*Rfi: specific color fidelity index for sample i*')
+            cpt = st.beta_expander('Table legend')
+            cpt.markdown('*CCT: Correlated Color Temperature (K)*')
+            cpt.markdown('*Duv: distance from Planckian locus*')
+            cpt.markdown('*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*')
+            cpt.markdown("*u'v': CIE 1976 2° u'v' chromaticity coordinates*")
+            cpt.markdown('*LER: Luminous Efficacy of Radiation (lm/W)*')
+            cpt.markdown('*Rf: general color fidelity index*')
+            cpt.markdown('*Rfi: specific color fidelity index for sample i*')
 
     
         elif option == 'Alpha-opic quantities (CIE S026)':
@@ -290,11 +311,11 @@ def calculate(option, df, **kwargs):
                 
                 st.markdown('**alpha-opic quantities (CIE S026)**')
                 st.dataframe(df_res)
-                
-                st.markdown('*Ee: irradiance (W/m²)*')
-                st.markdown('*EDI: Equivalent Daylight Illuminance (lux)*')
-                st.markdown('*DER: Daylight Efficacy Ratio*')
-                st.markdown('*ELR: Efficacy of Luminous Radiation (W/lm)*')
+                cpt = st.beta_expander('Table legend')
+                cpt.markdown('*Ee: irradiance (W/m²)*')
+                cpt.markdown('*EDI: Equivalent Daylight Illuminance (lux)*')
+                cpt.markdown('*DER: Daylight Efficacy Ratio*')
+                cpt.markdown('*ELR: Efficacy of Luminous Radiation (W/lm)*')
                 
             except:
                 st.markdown('Not implemented yet (03/05/2021)')
@@ -318,11 +339,12 @@ def calculate(option, df, **kwargs):
             
             st.markdown("**(X,Y,Z), (x,y), (u',v'), (CCT,Duv) for CIE observer {:s}**".format(kwargs['cieobs']))
             st.dataframe(df_res)
-            st.markdown('*XYZ: CIE X,Y,Z tristimulus values*')
-            st.markdown('*xy: CIE xy chromaticity coordinates*')
-            st.markdown("*u'v': CIE 1976 u'v' chromaticity coordinates*")
-            st.markdown('*CCT: Correlated Color Temperature (K)*')
-            st.markdown('*Duv: distance from Planckian locus*')
+            cpt = st.beta_expander('Table legend')
+            cpt.markdown('*XYZ: CIE X,Y,Z tristimulus values*')
+            cpt.markdown('*xy: CIE xy chromaticity coordinates*')
+            cpt.markdown("*u'v': CIE 1976 u'v' chromaticity coordinates*")
+            cpt.markdown('*CCT: Correlated Color Temperature (K)*')
+            cpt.markdown('*Duv: distance from Planckian locus*')
 
     else:
         start = False
@@ -347,7 +369,7 @@ def main():
     link = 'Code: [github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
     st.sidebar.markdown(link, unsafe_allow_html=True)
     st.sidebar.markdown('Code author: Prof. dr. K.A.G. Smet')
-    # st.sidebar.markdown("""---""")
+    st.sidebar.markdown("""---""")
     st.sidebar.title('Control panel')
     option = st.sidebar.selectbox("Calculation options", ('',
                                                           'ANSI/IESTM30 quantities', 
