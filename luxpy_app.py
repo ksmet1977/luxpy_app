@@ -326,6 +326,7 @@ class Run:
         self.title = run_options[self.option][4]
         self.data = None
         self.df_result = None # for storing results dataframe 
+        self.info = {'info':None}
         
     def load_data(self):
         """ Load data"""
