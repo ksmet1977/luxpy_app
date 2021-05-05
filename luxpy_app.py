@@ -16,7 +16,7 @@ from luxpy.toolboxes import iolidfiles as lid
 
 logo = plt.imread('LUXPY_logo_new1_small.png')
 
-__version__ = 'v0.0.21'
+__version__ = 'v0.0.25'
 
 def spd_to_tm30(spd):
     return lx.cri._tm30_process_spd(spd, cri_type = 'ies-tm30')
@@ -357,7 +357,7 @@ def main():
         
     st.markdown("""---""")
     st.markdown("If you use **LUXPY**, please cite the following tutorial paper published in LEUKOS:")
-    st.markdown("**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](10.1080/15502724.2018.1518717)")
+    st.markdown("**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](https://doi.org/10.1080/15502724.2018.1518717)")
     st.markdown("""---""")
     #start = False
     
