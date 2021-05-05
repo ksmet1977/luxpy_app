@@ -412,7 +412,7 @@ def main():
     if start:
         st.markdown('### Usage:')
         st.markdown(' 1. Select calculation option.')
-        st.markdown(' 2. Load data (set) (and set data format options; default = csv in column format.')
+        st.markdown(' 2. Load data (set) (and set data format options; default = csv in column format).')
         st.markdown(' 3. Press RUN.')
     
     if df_download is not None:
