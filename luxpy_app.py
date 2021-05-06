@@ -115,10 +115,14 @@ def load_dataframe():
         names = df.columns if (header == 'infer') else ['C{:1.0f}'.format(i+1) for i in range(len(df.columns))]
         df.columns = names
     else:
-        df = pd.DataFrame(np.array([[100.0,100.0,100.0]]), index = ['EEW']) # D65 default
+        data = np.array([[100,100,100],
+                          [70,60,10],
+                          [30,30,20],
+                          [50,50,100]],dtype=np.float32)
+        df = pd.DataFrame(data, index = ['EEW','Stim1','Stim2','Stim3']) # D65 default
         names = ['X','Y','Z']
         df.columns = ['X','Y','Z'] 
-        file_details['FileName'] = 'EEW (hard-coded)'
+        file_details['FileName'] = 'hard-coded'
     return df, file_details
 
 # loaded data displayers:
@@ -602,10 +606,10 @@ fig, ax = matplotlib.pyplot.subplots(1,2,figsize=(8,4))
 for i in range(Yxy.shape[0]):
     luxpy.plotSL(cspace = 'Yxy', cieobs = kwargs['cieobs'], axh = ax[0], diagram_colors = True)
     ax[0].plot(Yxy[i,1],Yxy[i,2],'o', markeredgecolor = 'k',label = names[i])
-    ax[0].legend()
+    ax[0].legend(loc = 'upper right')
     luxpy.plotSL(cspace = 'Yuv', cieobs = kwargs['cieobs'], axh = ax[1], diagram_colors = True)
     ax[1].plot(Yuv[i,1],Yuv[i,2],'o', markeredgecolor = 'k',label = names[i])
-    ax[1].legend()
+    ax[1].legend(loc = 'lower right')
 df = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T, Yuv[...,1:].T)).T, 
                                columns = ['X', 'Y', 'Z', 'CCT', 'Duv', 'x', 'y',"u'", "v'"], 
                                index = names) 
