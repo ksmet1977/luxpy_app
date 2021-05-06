@@ -101,7 +101,7 @@ def load_dataframe():
     expdr_dopts = st.sidebar.beta_expander("Data-format options")
     expdr_dopts.checkbox("Column format", True, key = 'options')
     header = 'infer' if expdr_dopts.checkbox("Data file has header", False, key = 'header') else None
-    col_index = 1 if expdr_dopts.checkbox("First Column is Index", False, key = 'col_index') else None
+    index_col = 0 if expdr_dopts.checkbox("First Column is Index", False, key = 'col_index') else None
    
     sep = expdr_dopts.selectbox('Separator',[',','\t',';'])
     
@@ -111,10 +111,10 @@ def load_dataframe():
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
-        df = pd.read_csv(uploaded_file, header =  header, sep = sep, col_index = col_index) # read in data
-        names = df.columns[1:] if (header == 'infer') else ['C{:1.0f}'.format(i+1) for i in range(len(df.columns)-1)]
+        df = pd.read_csv(uploaded_file, header =  header, sep = sep, index_col = index_col) # read in data
+        names = df.columns if (header == 'infer') else ['C{:1.0f}'.format(i+1) for i in range(len(df.columns))]
         df.columns = names
-        
+        print('df',df)
     else:
         df = pd.DataFrame(np.array([[100.0,100.0,100.0]]), index = ['EEW']) # D65 default
         names = ['X','Y','Z']
@@ -515,7 +515,7 @@ class Run:
             self.names = [self.name]
         elif self.input_data_type == 'general':
             self.df, self.file_details = load_dataframe()
-            display_dataframe(self.data, self.file_details)
+            display_dataframe(self.df, self.file_details)
             self.name = self.file_details['FileName']
             self.names = list(self.df.index)
             self.columnnames = self.df.columns
