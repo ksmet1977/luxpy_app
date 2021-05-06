@@ -163,7 +163,20 @@ def calc_tm30_quants(data, names, **kwargs):
                            columns = quants,
                            index = names)
     legend = ['CCT','Duv','xy','uv','LER','Rf','Rg','Rcshj','Rhshj','Rfhj','Rfi']
-    return df_res, legend, d
+    code = """
+    import luxpy as lx                               # imports the luxpy package 
+    spd = lx.spd('spd_data_file.csv')                # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    Rf =  lx.cri.spd_to_iesrf(spd)                   # returns the general color fidelity index as defined in ANSI/IES-TM30
+    Rg =  lx.cri.spd_to_iesrg(spd)                   # returns the color gamut index as defined in ANSI/IES-TM30
+    tm30_dict = lx.cri._tm30_process_spd(spd)        # returns a dictionary with tm30 quantities:  'Rf', 'Rg', 'Rfi', 'Rcshj', 'Rhshj', 'Rfhj', CCT, Duv, ...  
+    CCT, Duv = tm30_dict['cct'],tm30_dict['duv']     # get CCT and Duv for 1931 2° XYZ input (i.e. the one used to determine the reference illuminant) from dictionary
+
+    ler = lx.spd_to_ler(spd, cieobs = '1931_2')                    # Luminous Efficacy of Radiation calculated with CIE 1931 2° Ybar (= CIE 1924 Vlambda) 
+    XYZ = lx.spd_to_xyz(spd, cieobs = '1931_2', relative = True)   # relative XYZ tristimulus values calculated with CIE 1931 2° observer
+    Yxy = lx.xyz_to_Yxy(XYZ)                                       #  CIE x, y chromaticity corrdinates
+    Yuv = lx.xyz_to_Yuv(XYZ)                                       # CIE 1976 u', v' chromaticity coordidinates
+    """
+    return df_res, legend, code, d
 
 def plot_tm30_report(data, names, **kwargs):
     source = kwargs.get('source','')
@@ -180,8 +193,14 @@ def plot_tm30_report(data, names, **kwargs):
                                             model = model,
                                             notes = notes,
                                             save_fig_name = None)
-    # legend = None
-    return df_res, legend, axs
+    code = """
+    import luxpy as lx                            # imports the luxpy package 
+    spds = lx.spd('spd_data_file.csv')            # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    spd = spds[[0, 1]]                            # select 1 single specific spd (e.g. 1st; index = row number + 1) from the array
+    _, tm30_dict = lx.cri.plot_tm30_report(spd)   # generates report and returns a dictionary with tm30 quantities:  'Rf', 'Rg', 'Rfi', 'Rcshj', 'Rhshj', 'Rfhj', CCT, Duv, ...  
+    Rf, Rg = tm30_dict['Rf'], tm30_dict['Rg']     # e.g. get color fidelity index Rf and color gamut area index Rg from tm30_dict
+    """
+    return df_res, legend, code, axs
     
 def calc_ciera_quants(data, names, **kwargs):
     d = spd_to_tm30(data)
@@ -200,7 +219,17 @@ def calc_ciera_quants(data, names, **kwargs):
                            columns = quants,
                            index = names)
     legend = ['CCT','Duv','xy','uv','LER','Ra','Ri']
-    return df_res, legend, None
+    code = """
+    import luxpy as lx                                                # imports the luxpy package 
+    spd = lx.spd('spd_data_file.csv')                                 # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    Ra, Ri =  lx.cri.spd_to_ciera(spd, out = 'Rf,Rfi')                # returns the general (Ra) and specific (Ri) color rendering fidelity indices as defined in CIE13.3:1995
+    ler = lx.spd_to_ler(spd, cieobs = '1931_2')                       # Luminous Efficacy of Radiation calculated with CIE 1931 2° Ybar (= CIE 1924 Vlambda) 
+    XYZ = lx.spd_to_xyz(spd, cieobs = '1931_2', relative = True)      # relative XYZ tristimulus values calculated with CIE 1931 2° observer
+    CCT, Duv = lx.xyz_to_cct(XYZ, cieobs = '1931_2', out ='cct,duv')  # CCT and Duv for 1931 2° XYZ input
+    Yxy = lx.xyz_to_Yxy(XYZ)                                          # CIE x, y chromaticity corrdinates
+    Yuv = lx.xyz_to_Yuv(XYZ)                                          # CIE 1976 u', v' chromaticity coordidinates
+    """
+    return df_res, legend, code, None
 
 def calc_cierf_quants(data, names, **kwargs):
     d = spd_to_tm30(data)
@@ -217,7 +246,17 @@ def calc_cierf_quants(data, names, **kwargs):
                            columns = quants,
                            index = names)
     legend =  ['CCT','Duv','xy','uv','LER','Rf','Rfi']
-    return df_res, legend, None
+    code = """
+    import luxpy as lx                                                # imports the luxpy package 
+    spd = lx.spd('spd_data_file.csv')                                 # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    Rf, Rfi =  lx.cri.spd_to_cierf(spd, out = 'Rf,Rfi')               # returns the general (Rf) and specific (Rfi) color rendering fidelity indices as defined in CIE224:2017
+    ler = lx.spd_to_ler(spd, cieobs = '1931_2')                       # Luminous Efficacy of Radiation calculated with CIE 1931 2° Ybar (= CIE 1924 Vlambda) 
+    XYZ = lx.spd_to_xyz(spd, cieobs = '1931_2', relative = True)      # relative XYZ tristimulus values calculated with CIE 1931 2° observer
+    CCT, Duv = lx.xyz_to_cct(XYZ, cieobs = '1931_2', out ='cct,duv')  # CCT and Duv for 1931 2° XYZ input
+    Yxy = lx.xyz_to_Yxy(XYZ)                                          # CIE x, y chromaticity corrdinates
+    Yuv = lx.xyz_to_Yuv(XYZ)                                          # CIE 1976 u', v' chromaticity coordidinates
+    """
+    return df_res, legend, code, None
     
 def calc_cies026_quants(data, names, **kwargs):
     # alpha-opic Ee, -EDI, -DER and -ELR:
@@ -237,13 +276,21 @@ def calc_cies026_quants(data, names, **kwargs):
                           columns = ph._PHOTORECEPTORS,
                           index = df_indices)
     legend = ['Ee', 'EDI', 'DER', 'ELR']
-    return df_res, legend, None
+    code = """
+    import luxpy as lx                  # imports the luxpy package 
+    spd = lx.spd('spd_data_file.csv')   # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    aEe = ph.spd_to_aopicE(spd)         # returns a numpy array with the alpha-opic irradiance 
+    aedi = ph.spd_to_aopicEDI(spd,cieobs = '1931_2') # alpha-opic Equivalent Daylight Illuminance
+    ader = ph.spd_to_aopicDER(spd,cieobs = '1931_2') # alpha-opic Daylight Efficacy Ratio
+    aelr = ph.spd_to_aopicELR(spd,cieobs = '1931_2') # alpha-opic Efficacy of Luminous Radiation
+    """
+    return df_res, legend, code, None
 
 def calc_colorimetric_quants(data, names, **kwargs):
     rfl = kwargs.get('rfl',None)
     xyz, xyzw = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative_xyz'], rfl = kwargs.get('rfl',None), out = 2)
     if rfl is not None: xyz = xyz[:,0,:] # get rid of light source dimension
-    cct, duv = lx.xyz_to_cct(xyz, out ='cct,duv')
+    cct, duv = lx.xyz_to_cct(xyz, out ='cct,duv', cieobs = kwargs['cieobs'])
     xy = lx.xyz_to_Yxy(xyz)[...,1:]
     uv = lx.xyz_to_Yuv(xyz)[...,1:]
     quants = ['X','Y','Z'] + ['x','y',"u'","v'"] + ['CCT','Duv']
@@ -255,11 +302,27 @@ def calc_colorimetric_quants(data, names, **kwargs):
                            columns = quants,
                            index = names)
     legend = ['XYZ','xy','uv','CCT','Duv']
-    return df_res, legend, xyzw
+    code = """
+    import luxpy as lx                                                # imports the luxpy package 
+    spd = lx.spd('spd_data_file.csv')                                 # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    XYZ = lx.spd_to_xyz(spd, cieobs = '1931_2', relative = True)      #  relative XYZ tristimulus values calculated with CIE 1931 2° observer
+    CCT, Duv = lx.xyz_to_cct(XYZ, cieobs = '1931_2', out ='cct,duv')  # CCT and Duv for 1931 2° XYZ input
+    Yxy = lx.xyz_to_Yxy(XYZ)                                          # CIE x, y chromaticity corrdinates
+    Yuv = lx.xyz_to_Yuv(XYZ)                                          # CIE 1976 u', v' chromaticity coordidinates
+    """
+    return df_res, legend, code, xyzw
 
 def plot_ies_ldt_lid(LID, names, **kwargs):
     fig = generate_LID_plots(LID)
-    return (None, None, fig)
+    
+    code = """ 
+    import luxpy.toolboxes.iolidfiles as iolid          # imports the iolidfiles toolbox from the luxpy package
+    LID = iolid.read_lamp_data('lid_data_file.ies')     # returns a dictionary with the info stored in the IES (or LDT) file named 'lid_data_file.ies'
+    iolid.draw_lid(LID)                                 # generate a figure with a polar of the C0-C180 and C90-C270 planes
+    iolid.render_lid(LID)                               # generate a figure with a 1-bounce physical based render of the LID in a simple scene composed of a Lambertian wall and a floor
+    """
+    
+    return (None, None, code, fig)
 
 # run options --> {option : (short name, function, input datatype, has_legend, title)}
 run_options = {'' : ('', None, None, False, ''),
@@ -327,6 +390,7 @@ class Run:
         self.data = None
         self.df_result = None # for storing results dataframe 
         self.info = {'info':None}
+        self.code_example = None
         
     def load_data(self):
         """ Load data"""
@@ -362,7 +426,7 @@ class Run:
         st.markdown(self.title)
         
         if self.opt == 'tm30_report':
-            self.df_result, self.legend, tmp = self.fcn(self.data, self.names, **self.info)
+            self.df_result, self.legend, self.code_example, tmp = self.fcn(self.data, self.names, **self.info)
             st.pyplot(tmp['fig'])
             st.text("To download image, right-click and select 'Save Image As ...'")
             
@@ -371,12 +435,12 @@ class Run:
             if self.has_legend: set_up_df_legend(self.legend)
         
         elif self.opt == 'lid_plots':
-            self.df_result, self.legend, tmp = self.fcn(self.data, self.names)
+            self.df_result, self.legend, self.code_example, tmp = self.fcn(self.data, self.names)
             st.pyplot(tmp)
             if tmp is not None: st.text("To download image, right-click and select 'Save Image As ...'")
         
         else:
-            self.df_result, self.legend, tmp = self.fcn(self.data, self.names, **self.info)
+            self.df_result, self.legend, self.code_example, tmp = self.fcn(self.data, self.names, **self.info)
             st.dataframe(self.df_result)
             if self.has_legend: set_up_df_legend(self.legend)
             
@@ -384,7 +448,9 @@ class Run:
             st.markdown("""---""")
             st.markdown(get_table_download_link_csv(self.df_result), unsafe_allow_html=True)   
 
-            
+        if self.code_example is not None:
+            expdr_code = st.beta_expander('Show simple Luxpy code example to generate output',False)
+            expdr_code.code(self.code_example)
  
 def setup_luxpy_info():
     st.sidebar.image(logo, width=300)
@@ -435,6 +501,9 @@ def main():
     if start: explain_usage()
         
     cite()
+    
+    
+    
     
   
 if __name__ == '__main__':
