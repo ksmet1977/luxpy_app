@@ -384,7 +384,7 @@ run_options = {'' : ('', None, None, False, ''),
                "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)" :('colorimetric_quants',calc_colorimetric_quants, 'spd', True,"**Colorimetric quantities: (X,Y,Z), (x,y), (u',v'), (CCT,Duv)**"),
                'Alpha-opic quantities (CIE S026)' : ('cies2036_quants', calc_cies026_quants, 'spd', True, 'Alpha-opic quantities (CIE S026)'),
                'Plot Luminous Intensity Distribution (IES/LDT files)' : ('lid_plots', plot_ies_ldt_lid, 'lid', False, '**Luminous Intensity Distiribution (polar plot and render)**'),
-               'Write your own code' : ('custom_code', custom_code, 'spd', True, '**Output of user generated code**')
+               'Write your own code' : ('custom_code', custom_code, ('spd','lid'), True, '**Output of user generated code**')
                }
 
 def set_up_df_legend(keys):
@@ -453,6 +453,8 @@ class Run:
     def load_data(self):
         """ Load data"""
         # load and process spectra data:
+        if isinstance(self.input_data_type,tuple):
+            self.input_data_type = st.sidebar.selectbox("Input data type",self.input_data_type)
         if self.input_data_type == 'spd':
             self.spectra_df, self.file_details = load_spectral_data()
             display_spectral_input_data(self.spectra_df, self.file_details)
@@ -478,7 +480,7 @@ class Run:
         elif self.opt == 'custom_code':
             self.info = setup_colorimetric_info()
             
-            self.code_example = \
+            self.code_example_spd = \
 """import luxpy, pandas, numpy, matplotlib.pyplot
 
 XYZ = luxpy.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative'])
@@ -507,7 +509,7 @@ __legend__ = {'XYZ' : 'XYZ tristimulus values',
           }
 """
 
-            self.code_example_basic = \
+            self.code_example_basic_spd = \
 """import luxpy, pandas, numpy
 XYZ = luxpy.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative'])
 CCT, Duv = luxpy.xyz_to_cct(XYZ, cieobs = kwargs['cieobs'], out = 'cct,duv')
@@ -516,7 +518,40 @@ __results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T)
                                columns = ['X', 'Y', 'Z', 'CCT', 'Duv', 'x', 'y'], 
                                index = names) 
 """
-            
+
+            self.code_example_lid=\
+"""import luxpy, pandas, numpy, matplotlib.pyplot
+from luxpy.toolboxes import iolidfiles as iolid
+fig = matplotlib.pyplot.figure(figsize=[10,3])
+axs = [fig.add_subplot(131, projection = 'polar'), 
+       fig.add_subplot(132, projection = '3d'),
+       fig.add_subplot(133)]
+iolid.draw_lid(data, ax = axs[0], polar_plot_Cx_planes = [0,45,90])
+iolid.draw_lid(data, ax = axs[1], projection = '3d')
+iolid.render_lid(data, ax2D = axs[2], ax3D = False, sensor_resolution = 50)
+matplotlib.pyplot.tight_layout()
+__results__ = fig
+"""
+
+            self.code_example_basic_lid=\
+"""import luxpy, pandas, numpy, matplotlib.pyplot
+from luxpy.toolboxes import iolidfiles as iolid
+fig = matplotlib.pyplot.figure(figsize=[10,4])
+axs = [fig.add_subplot(121, projection = 'polar'), 
+       fig.add_subplot(122, projection = '3d')]
+iolid.draw_lid(data, ax = axs[0])
+iolid.draw_lid(data, ax = axs[1], projection = '3d')
+matplotlib.pyplot.tight_layout()
+__results__ = fig
+"""
+
+            if self.input_data_type == "spd":
+                self.code_example = self.code_example_spd
+                self.code_example_basic = self.code_example_basic_spd
+            elif self.input_data_type == "lid":
+                self.code_example = self.code_example_lid
+                self.code_example_basic = self.code_example_basic_lid
+                
             ccode_expr_text_area = st.beta_expander("Enter user code here",True)
             self.code_example_is_basic = ccode_expr_text_area.checkbox('Show basic (no plots, no legend) code example',True)
             code_example = self.code_example_basic if self.code_example_is_basic else self.code_example
@@ -530,6 +565,8 @@ __results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T)
         else:
             if self.opt in ('colorimetric_quants', 'cies2036_quants'):
                 self.info = setup_colorimetric_info()
+                
+
         
   
     def run(self):
