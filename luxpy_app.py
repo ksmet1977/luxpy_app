@@ -8,6 +8,7 @@ import os
 import base64
 from io import BytesIO, StringIO
 from PIL import Image
+import copy
 
 
 import luxpy as lx
@@ -140,8 +141,31 @@ def generate_LID_plots(LID):
     return fig
 
 #------------------------------------------------------------------------------
-# Run classes and functions
+# Run classes, functions and variables
 #------------------------------------------------------------------------------
+legend_dict =  {'XYZ' : '*XYZ: CIE X,Y,Z tristimulus values*',
+                'CCT' : '*CCT: Correlated Color Temperature (K)*',
+                'Duv' : '*Duv: distance from Planckian locus*',
+                'xy' :  '*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*',
+                'uv' :  "*u'v': CIE 1976 2° u'v' chromaticity coordinates*",
+                'LER' : '*LER: Luminous Efficacy of Radiation (lm/W)*',
+                'Rf' :  '*Rf: general color fidelity index*',
+                'Rg' : '*Rg: gamut area index*',
+                'Rcshj' : '*Rcshj: local chroma shift for hue bin j*',
+                'Rhshj': '*Rhshj: local hue shift for hue bin j*',
+                'Rfhj' :'*Rfhj: local color fidelity index for hue bin j*',
+                'Rfi' : '*Rfi: specific color fidelity index for sample i*',
+                'Ra' : '*Ra: general color fidelity index*',
+                'Ri' : '*Ri: specific color fidelity index for sample i*',
+                'Rf' : '*Rf: general color fidelity index*',
+                'Rfi' : '*Rfi: specific color fidelity index for sample i*',
+                'Ee' :  '*Ee: irradiance (W/m²)*',
+                'EDI' : '*EDI: Equivalent Daylight Illuminance (lux)*',
+                'DER' : '*DER: Daylight Efficacy Ratio*',
+                'ELR' : '*ELR: Efficacy of Luminous Radiation (W/lm)*'}
+
+
+
 def spd_to_tm30(spd):
     return lx.cri._tm30_process_spd(spd, cri_type = 'ies-tm30')
 
@@ -288,7 +312,7 @@ def calc_cies026_quants(data, names, **kwargs):
 
 def calc_colorimetric_quants(data, names, **kwargs):
     rfl = kwargs.get('rfl',None)
-    xyz, xyzw = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative_xyz'], rfl = kwargs.get('rfl',None), out = 2)
+    xyz, xyzw = lx.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative'], rfl = kwargs.get('rfl',None), out = 2)
     if rfl is not None: xyz = xyz[:,0,:] # get rid of light source dimension
     cct, duv = lx.xyz_to_cct(xyz, out ='cct,duv', cieobs = kwargs['cieobs'])
     xy = lx.xyz_to_Yxy(xyz)[...,1:]
@@ -324,37 +348,44 @@ def plot_ies_ldt_lid(LID, names, **kwargs):
     
     return (None, None, code, fig)
 
+def custom_code(data, names, code, **kwargs):
+    __tmp__ = {}
+    __legend__ = None # for legend
+    __results__ = None
+    __code__ = copy.copy(code) # make a copy so this variable is not accidently overwritten
+    
+    # execute user defined code:
+    indent = '    '
+    return_string = "return __results__, __legend__\n"  if '__legend__' in code else "return __results__\n" 
+    code = ("def __user_code__(data, names, **kwargs):\n" + \
+           '\n'.join([indent + line for line in code.split('\n')]) + \
+           return_string)
+    exec(code, __tmp__)
+    if '__legend__' in code: 
+       __results__, __legend__ = __tmp__['__user_code__'](data,names,**kwargs)
+    else:
+       __results__ = __tmp__['__user_code__'](data,names,**kwargs)
+    
+    # update legend_dict 
+    if __legend__ is not None: 
+        global legend_dict 
+        legend_dict.update(__legend__)
+        __legend__ = list(__legend__.keys())
+    return __results__, __legend__, __code__, None 
+
+    
+
 # run options --> {option : (short name, function, input datatype, has_legend, title)}
 run_options = {'' : ('', None, None, False, ''),
-                'ANSI/IESTM30 graphic report' : ('tm30_report', plot_tm30_report, 'spd', False, 'ANSI/IESTM30 graphic report'),
+                'ANSI/IESTM30 graphic report' : ('tm30_report', plot_tm30_report, 'spd', False, '**ANSI/IESTM30 graphic report**'),
                'ANSI/IESTM30 quantities' : ('tm30_quants' ,calc_tm30_quants, 'spd', True, '**ANSI/IES TM30 Quantities (CCT, Duv, Rf,Rg, ...)**'),
                'CIE 13.3-1995 Ra, Ri quantities' : ('ciera', calc_ciera_quants, 'spd',True,'**CIE 13.3-1995 Ra, Ri quantities**'),
                'CIE 224:2017 Rf, Rfi quantities': ('cierf', calc_cierf_quants, 'spd', True,'**CIE 224:2017 Rf, Rfi quantities**'),
                "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)" :('colorimetric_quants',calc_colorimetric_quants, 'spd', True,"**Colorimetric quantities: (X,Y,Z), (x,y), (u',v'), (CCT,Duv)**"),
                'Alpha-opic quantities (CIE S026)' : ('cies2036_quants', calc_cies026_quants, 'spd', True, 'Alpha-opic quantities (CIE S026)'),
-               'Plot Luminous Intensity Distribution (IES/LDT files)' : ('lid_plots', plot_ies_ldt_lid, 'lid', False, '**Luminous Intensity Distiribution (polar plot and render)**')
+               'Plot Luminous Intensity Distribution (IES/LDT files)' : ('lid_plots', plot_ies_ldt_lid, 'lid', False, '**Luminous Intensity Distiribution (polar plot and render)**'),
+               'Write your own code' : ('custom_code', custom_code, 'spd', True, '**Output of user generated code**')
                }
-
-legend_dict =  {'XYZ' : '*XYZ: CIE X,Y,Z tristimulus values*',
-                'CCT' : '*CCT: Correlated Color Temperature (K)*',
-                'Duv' : '*Duv: distance from Planckian locus*',
-                'xy' :  '*xy: CIE 1931 2° xy chromaticity coordinates of illuminant white point*',
-                'uv' :  "*u'v': CIE 1976 2° u'v' chromaticity coordinates*",
-                'LER' : '*LER: Luminous Efficacy of Radiation (lm/W)*',
-                'Rf' :  '*Rf: general color fidelity index*',
-                'Rg' : '*Rg: gamut area index*',
-                'Rcshj' : '*Rcshj: local chroma shift for hue bin j*',
-                'Rhshj': '*Rhshj: local hue shift for hue bin j*',
-                'Rfhj' :'*Rfhj: local color fidelity index for hue bin j*',
-                'Rfi' : '*Rfi: specific color fidelity index for sample i*',
-                'Ra' : '*Ra: general color fidelity index*',
-                'Ri' : '*Ri: specific color fidelity index for sample i*',
-                'Rf' : '*Rf: general color fidelity index*',
-                'Rfi' : '*Rfi: specific color fidelity index for sample i*',
-                'Ee' :  '*Ee: irradiance (W/m²)*',
-                'EDI' : '*EDI: Equivalent Daylight Illuminance (lux)*',
-                'DER' : '*DER: Daylight Efficacy Ratio*',
-                'ELR' : '*ELR: Efficacy of Luminous Radiation (W/lm)*'}
 
 def set_up_df_legend(keys):
     cpt = st.beta_expander('Table legend')
@@ -372,7 +403,7 @@ def setup_tm30_report_info():
 def setup_colorimetric_info():
     st.sidebar.markdown("### Colorimetric options:")
     info = {'cieobs' : st.sidebar.selectbox('CIE observer',[x for x in lx._CMF['types'] if (x!='cie_std_dev_obs_f1')]),
-            'relative_xyz' : st.sidebar.checkbox("Relative XYZ [Ymax=100]", True, key = 'relative_xyz')
+            'relative' : st.sidebar.checkbox("Relative XYZ [Ymax=100]", True, key = 'relative')
             }
     return info
 
@@ -391,6 +422,33 @@ class Run:
         self.df_result = None # for storing results dataframe 
         self.info = {'info':None}
         self.code_example = None
+        self.user_code = None
+        if self.opt == 'custom_code':
+            st.markdown("**RUN your own code**")
+            ccode_expdr = st.beta_expander('!!! READ ME !!!')
+            ccode_expdr.text("Write your own code in the field below.")
+            ccode_expdr.text("""
+                             - Loaded data is available in the variable `data`.
+                             - Identifying 'names' for the data are available in the variable `names`.
+                             - Additional user defined arguments (when available),
+                               such as e.g. `cieobs` and `relative`, are stored as keys
+                               in a dictionary `kwargs`.
+                               (e.g. to access cieobs use `cieobs = kwargs['cieobs'].)
+                             - Any calculated final output should
+                               be stored in a tuple called `__results__`.
+                             - Final output can be a pandas dataframe or a figure handle to a plot
+                             - Optionally, a 'legend' to the column names or index names used in
+                               the dataframe can be defined in a dictionary `__legend__`of the form:
+                                   {'legend key' : 'explanation string'}
+                               (e.g. __legend__ = {'XYZ' : 'XYZ tristimulus values',
+                                                   'CCT' : 'Correlated Color Temperature (K)',
+                                                   }
+                            """)
+            ccode_expdr.text(" For example, see default code in text field")
+
+            
+            
+            
         
     def load_data(self):
         """ Load data"""
@@ -416,9 +474,63 @@ class Run:
     def setup_info_section(self):
         if self.opt == 'tm30_report':
             self.info = setup_tm30_report_info() 
+       
+        elif self.opt == 'custom_code':
+            self.info = setup_colorimetric_info()
+            
+            self.code_example = \
+"""import luxpy, pandas, numpy, matplotlib.pyplot
+
+XYZ = luxpy.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative'])
+CCT, Duv = luxpy.xyz_to_cct(XYZ, cieobs = kwargs['cieobs'], out = 'cct,duv')
+Yxy = luxpy.xyz_to_Yxy(XYZ)
+
+fig, ax = matplotlib.pyplot.subplots(1,2, figsize=(8,4))
+for i in range(data.shape[0]-1):
+    ax[0].plot(data[0],data[i+1],label = names[i])
+    ax[0].legend()
+    ax[0].set_xlabel('Wavelength (nm)')
+    ax[0].set_ylabel('Intentensity (W/m².sr.nm)')
+    luxpy.plotSL(cspace = 'Yxy', cieobs = kwargs['cieobs'], axh = ax[1], diagram_colors = True)
+    ax[1].plot(Yxy[i,1],Yxy[i,2],'o', markeredgecolor = 'k', label = names[i])
+    ax[1].legend()
+
+df = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T)).T, 
+                      columns = ['X', 'Y', 'Z', 'CCT', 'Duv', 'x', 'y'], 
+                      index = names)
+
+__results__ = (fig, df)
+__legend__ = {'XYZ' : 'XYZ tristimulus values',
+          'CCT' : 'Correlated Color Temperature (K)',
+          'Duv' : 'Distance to blackbody locus in CIE 1960 uv diagram',
+          'xy'  : 'CIE x,y chromaticity coordinates'
+          }
+"""
+
+            self.code_example_basic = \
+"""import luxpy, pandas, numpy
+XYZ = luxpy.spd_to_xyz(data, cieobs = kwargs['cieobs'], relative = kwargs['relative'])
+CCT, Duv = luxpy.xyz_to_cct(XYZ, cieobs = kwargs['cieobs'], out = 'cct,duv')
+Yxy = luxpy.xyz_to_Yxy(XYZ)
+__results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T)).T, 
+                               columns = ['X', 'Y', 'Z', 'CCT', 'Duv', 'x', 'y'], 
+                               index = names) 
+"""
+            
+            ccode_expr_text_area = st.beta_expander("Enter user code here",True)
+            self.code_example_is_basic = ccode_expr_text_area.checkbox('Show basic (no plots, no legend) code example',True)
+            code_example = self.code_example_basic if self.code_example_is_basic else self.code_example
+            text_area_height = 200 if self.code_example_is_basic else 300
+            self.custom_code = ccode_expr_text_area.text_area("Press ctrl-enter to load code!!!", 
+                                                         value = code_example, 
+                                                         height = text_area_height)
+            ccode_expr_code = st.beta_expander("Check user code with Python language highlighting",False)
+            ccode_expr_code.code(self.custom_code)
+        
         else:
             if self.opt in ('colorimetric_quants', 'cies2036_quants'):
                 self.info = setup_colorimetric_info()
+        
   
     def run(self):
         """ Run requested operation """
@@ -439,17 +551,35 @@ class Run:
             st.pyplot(tmp)
             if tmp is not None: st.text("To download image, right-click and select 'Save Image As ...'")
         
+        elif self.opt == 'custom_code':
+            self.df_result, self.legend, self.code_example, tmp = self.fcn(self.data, self.names, self.custom_code, **self.info)
+            
+            # try and process results to screen output:
+            if not isinstance(self.df_result,tuple): self.df_result = (self.df_result,)
+            for result in self.df_result: 
+                # st.markdown("""---""")
+                if isinstance(result, plt.Figure): 
+                    st.pyplot(result)
+                    st.text("To download image, right-click and select 'Save Image As ...'")
+                elif isinstance(result, pd.DataFrame):
+                    st.dataframe(result)
+                    if self.legend is not None: set_up_df_legend(self.legend)
+                    st.markdown(get_table_download_link_csv(result), unsafe_allow_html=True)
+                else:
+                    if result is not None: st.write(result) # try write
+            
+            
         else:
             self.df_result, self.legend, self.code_example, tmp = self.fcn(self.data, self.names, **self.info)
             st.dataframe(self.df_result)
             if self.has_legend: set_up_df_legend(self.legend)
             
-        if self.df_result is not None:
+        if (self.df_result is not None) & (self.opt != 'custom_code'):
             st.markdown("""---""")
             st.markdown(get_table_download_link_csv(self.df_result), unsafe_allow_html=True)   
 
-        if self.code_example is not None:
-            expdr_code = st.beta_expander('Show simple Luxpy code example to generate output',False)
+        if (self.code_example is not None) & (self.opt != 'custom_code'):
+            expdr_code = st.beta_expander('Luxpy Coding Tutorial: show simple code example that generates output',False)
             expdr_code.code(self.code_example)
  
 def setup_luxpy_info():
@@ -495,10 +625,11 @@ def main():
                 start = False
                 engine.run()
         
+        if engine.opt == 'custom_code': start = False
         if start: st.text('Scroll down control panel...') 
-    
-    
+        
     if start: explain_usage()
+    
         
     cite()
     
