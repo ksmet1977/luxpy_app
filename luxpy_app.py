@@ -354,18 +354,24 @@ def custom_code(data, names, code, **kwargs):
     __results__ = None
     __code__ = copy.copy(code) # make a copy so this variable is not accidently overwritten
     
-    # execute user defined code:
+    # prepare code for execution:
     indent = '    '
+    
+    if '__results__' not in code: code = code + "\n__results__ = '!!! No __results__ variable with output was defined in user code !!!'\n"
     return_string = "return __results__, __legend__\n"  if '__legend__' in code else "return __results__\n" 
+    
     code = ("def __user_code__(data, names, **kwargs):\n" + \
            '\n'.join([indent + line for line in code.split('\n')]) + \
            return_string)
+        
+    # execute user defined code: 
     exec(code, __tmp__)
-    if '__legend__' in code: 
+    if ('__results__' in code) & ('__legend__' in code): 
        __results__, __legend__ = __tmp__['__user_code__'](data,names,**kwargs)
-    else:
+    elif ('__results__' in code):
        __results__ = __tmp__['__user_code__'](data,names,**kwargs)
-    
+
+         
     # update legend_dict 
     if __legend__ is not None: 
         global legend_dict 
@@ -424,18 +430,18 @@ class Run:
         self.code_example = None
         self.user_code = None
         if self.opt == 'custom_code':
-            st.markdown("**RUN your own code**")
+            st.markdown("**RUN your own Luxpy code**")
+            st.markdown("*Don't know how? Have a look at the FREE (Open Access) [tutorial paper in LEUKOS](https://doi.org/10.1080/15502724.2018.1518717)*")
             ccode_expdr = st.beta_expander('!!! READ ME !!!')
             ccode_expdr.text("Write your own code in the field below.")
             ccode_expdr.text("""
-                             - Loaded data is available in the variable `data`.
+                             - Uploaded data is available in the variable `data`.
                              - Identifying 'names' for the data are available in the variable `names`.
                              - Additional user defined arguments (when available),
                                such as e.g. `cieobs` and `relative`, are stored as keys
                                in a dictionary `kwargs`.
                                (e.g. to access cieobs use `cieobs = kwargs['cieobs'].)
-                             - Any calculated final output should
-                               be stored in a tuple called `__results__`.
+                             - Final output must be stored in a tuple called `__results__`.
                              - Final output can be a pandas dataframe or a figure handle to a plot
                              - Optionally, a 'legend' to the column names or index names used in
                                the dataframe can be defined in a dictionary `__legend__`of the form:
@@ -620,12 +626,13 @@ __results__ = fig
             expdr_code.code(self.code_example)
  
 def setup_luxpy_info():
-    st.sidebar.image(logo, width=300)
+    st.sidebar.image(logo, width=200)
     st.sidebar.markdown('## **Online calculator for lighting and color science**')
     st.sidebar.markdown('Luxpy {:s}, App {:s}'.format(lx.__version__, __version__))
     link = 'Code: [github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
     st.sidebar.markdown(link, unsafe_allow_html=True)
     st.sidebar.markdown('Code author: Prof. dr. K.A.G. Smet')
+    #st.sidebar.markdown('doi:[10.1080/15502724.2018.1518717](https://doi.org/10.1080/15502724.2018.1518717)')
     
 def setup_control_panel_main():
     st.sidebar.markdown("""---""")
@@ -635,8 +642,8 @@ def setup_control_panel_main():
   
 def cite():
     st.markdown("""---""")
-    st.markdown("If you use **LUXPY**, please cite the following tutorial paper published in LEUKOS:")
-    st.markdown("**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](https://doi.org/10.1080/15502724.2018.1518717)")
+    st.markdown("""If you use **LUXPY**, please cite the following tutorial paper published in LEUKOS:""")
+    st.markdown("""**Smet, K. A. G. (2019). Tutorial: The LuxPy Python Toolbox for Lighting and Color Science. LEUKOS, 1–23.** DOI: [10.1080/15502724.2018.1518717](https://doi.org/10.1080/15502724.2018.1518717)""")
     st.markdown("""---""")
     
 def explain_usage():
