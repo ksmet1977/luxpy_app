@@ -280,9 +280,9 @@ def calc_cies026_quants(data, names, **kwargs):
     import luxpy as lx                  # imports the luxpy package 
     spd = lx.spd('spd_data_file.csv')   # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
     aEe = ph.spd_to_aopicE(spd)         # returns a numpy array with the alpha-opic irradiance 
-    aedi = ph.spd_to_aopicEDI(spd,cieobs = '1931_2') # alpha-opic Equivalent Daylight Illuminance
-    ader = ph.spd_to_aopicDER(spd,cieobs = '1931_2') # alpha-opic Daylight Efficacy Ratio
-    aelr = ph.spd_to_aopicELR(spd,cieobs = '1931_2') # alpha-opic Efficacy of Luminous Radiation
+    aedi = ph.spd_to_aopicEDI(spd,cieobs = '1931_2') # alpha-opic Equivalent Daylight Illuminance with illuminance Ev calculated using the Ybar function in the CIE 1931 2° observer
+    ader = ph.spd_to_aopicDER(spd,cieobs = '1931_2') # alpha-opic Daylight Efficacy Ratio with illuminance Ev calculated using the Ybar function in the CIE 1931 2° observer
+    aelr = ph.spd_to_aopicELR(spd,cieobs = '1931_2') # alpha-opic Efficacy of Luminous Radiation with illuminance Ev calculated using the Ybar function in the CIE 1931 2° observer
     """
     return df_res, legend, code, None
 
