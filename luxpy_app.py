@@ -184,7 +184,7 @@ def plot_tm30_report(data, names, **kwargs):
     date = kwargs.get('date','')
     model = kwargs.get('model','')
     notes = kwargs.get('notes','')
-    df_res, legend, d = calc_tm30_quants(data, names)
+    df_res, legend, code, d = calc_tm30_quants(data, names)
 
     axs, results = lx.cri.plot_tm30_report(d, 
                                             source = source, 
