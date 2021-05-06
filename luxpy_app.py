@@ -114,7 +114,6 @@ def load_dataframe():
         df = pd.read_csv(uploaded_file, header =  header, sep = sep, index_col = index_col) # read in data
         names = df.columns if (header == 'infer') else ['C{:1.0f}'.format(i+1) for i in range(len(df.columns))]
         df.columns = names
-        print('df',df)
     else:
         df = pd.DataFrame(np.array([[100.0,100.0,100.0]]), index = ['EEW']) # D65 default
         names = ['X','Y','Z']
