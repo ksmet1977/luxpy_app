@@ -60,7 +60,7 @@ def load_spectral_data():
     # expander with data loading:
     expdr_dload = st.sidebar.beta_expander("Upload Spectral Data",True)
     uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt'])
-    file_details = ''
+    file_details = {"FileName":'',"FileType":'',"FileSize":''}
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
         df = pd.read_csv(uploaded_file, header =  header, sep = sep) # read in data
@@ -92,6 +92,36 @@ def load_LID_data():
         st.sidebar.text('Load file first!')
     return LID, file_details
 
+def load_dataframe():
+    # Set title for this sidebar section:
+    st.sidebar.markdown("""---""")
+    st.sidebar.markdown("### Load dataframe:")
+    
+    # expander with data format options:
+    expdr_dopts = st.sidebar.beta_expander("Data-format options")
+    expdr_dopts.checkbox("Column format", True, key = 'options')
+    header = 'infer' if expdr_dopts.checkbox("Data file has header", False, key = 'header') else None
+    col_index = 1 if expdr_dopts.checkbox("First Column is Index", False, key = 'col_index') else None
+   
+    sep = expdr_dopts.selectbox('Separator',[',','\t',';'])
+    
+    # expander with data loading:
+    expdr_dload = st.sidebar.beta_expander("Upload DataFrame csv file",True)
+    uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt'])
+    file_details = {"FileName":'',"FileType":'',"FileSize":''}
+    if uploaded_file is not None:
+        file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
+        df = pd.read_csv(uploaded_file, header =  header, sep = sep, col_index = col_index) # read in data
+        names = df.columns[1:] if (header == 'infer') else ['C{:1.0f}'.format(i+1) for i in range(len(df.columns)-1)]
+        df.columns = names
+        
+    else:
+        df = pd.DataFrame(np.array([[100.0,100.0,100.0]]), index = ['EEW']) # D65 default
+        names = ['X','Y','Z']
+        df.columns = ['X','Y','Z'] 
+        file_details['FileName'] = 'EEW (hard-coded)'
+    return df, file_details
+
 # loaded data displayers:
 #------------------------
 
@@ -111,9 +141,14 @@ def display_spectral_input_data(df, file_details, sidebar = True):
         ax.legend()
         expdr_dshow.pyplot(fig)
         
-    # global placeholder_spdselector
-    # placeholder_spdselector = st.sidebar.empty() # placeholder for spetrum name selector
-    
+placeholder_indexselector = None
+def display_dataframe(df, file_details, sidebar = True):
+    st.sidebar.markdown('### Input dataframe:')
+    expdr_dshow = st.sidebar.beta_expander('Show input dataframe') if sidebar  else st.beta_expander('Show input dataframe')      
+    expdr_dshow.write(file_details)
+    expdr_dshow.dataframe(df)
+
+   
 
 def generate_LID_plots(LID):
     
@@ -390,7 +425,7 @@ run_options = {'' : ('', None, None, False, ''),
                "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)" :('colorimetric_quants',calc_colorimetric_quants, 'spd', True,"**Colorimetric quantities: (X,Y,Z), (x,y), (u',v'), (CCT,Duv)**"),
                'Alpha-opic quantities (CIE S026)' : ('cies2036_quants', calc_cies026_quants, 'spd', True, 'Alpha-opic quantities (CIE S026)'),
                'Plot Luminous Intensity Distribution (IES/LDT files)' : ('lid_plots', plot_ies_ldt_lid, 'lid', False, '**Luminous Intensity Distiribution (polar plot and render)**'),
-               'Write your own code' : ('custom_code', custom_code, ('spd','lid'), True, '**Output of user generated code**')
+               'Write your own code' : ('custom_code', custom_code, ('spd','lid','general'), True, '**Output of user generated code**')
                }
 
 def set_up_df_legend(keys):
@@ -430,7 +465,7 @@ class Run:
         self.code_example = None
         self.user_code = None
         if self.opt == 'custom_code':
-            st.markdown("**RUN your own Luxpy code**")
+            st.markdown("**Write and run your own Luxpy code**")
             st.markdown("*Don't know how? Have a look at the FREE (Open Access) [tutorial paper in LEUKOS](https://doi.org/10.1080/15502724.2018.1518717)*")
             ccode_expdr = st.beta_expander('!!! READ ME !!!')
             ccode_expdr.text("Write your own code in the field below.")
@@ -478,6 +513,13 @@ class Run:
             self.data, self.file_details = load_LID_data()
             self.name = self.file_details['FileName']
             self.names = [self.name]
+        elif self.input_data_type == 'general':
+            self.df, self.file_details = load_dataframe()
+            display_dataframe(self.data, self.file_details)
+            self.name = self.file_details['FileName']
+            self.names = list(self.df.index)
+            self.columnnames = self.df.columns
+            self.data = self.df.values
     
     def setup_info_section(self):
         if self.opt == 'tm30_report':
@@ -508,10 +550,10 @@ df = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T)).T,
                       index = names)
 
 __results__ = (fig, df)
-__legend__ = {'XYZ' : 'XYZ tristimulus values',
-          'CCT' : 'Correlated Color Temperature (K)',
-          'Duv' : 'Distance to blackbody locus in CIE 1960 uv diagram',
-          'xy'  : 'CIE x,y chromaticity coordinates'
+__legend__ = {'XYZ' : '*XYZ: XYZ tristimulus values*',
+          'CCT' : '*CCT: Correlated Color Temperature (K)*',
+          'Duv' : '*Duv: Distance to blackbody locus in CIE 1960 uv diagram*',
+          'xy'  : '*xy: CIE x,y chromaticity coordinates*'
           }
 """
 
@@ -551,12 +593,52 @@ matplotlib.pyplot.tight_layout()
 __results__ = fig
 """
 
+            self.code_example_general = \
+"""import luxpy, pandas, numpy,matplotlib.pyplot
+XYZ = data
+CCT, Duv = luxpy.xyz_to_cct(XYZ, cieobs = kwargs['cieobs'], out = 'cct,duv')
+Yxy = luxpy.xyz_to_Yxy(XYZ)
+Yuv = luxpy.xyz_to_Yuv(XYZ)
+fig, ax = matplotlib.pyplot.subplots(1,2,figsize=(8,4))
+for i in range(Yxy.shape[0]):
+    luxpy.plotSL(cspace = 'Yxy', cieobs = kwargs['cieobs'], axh = ax[0], diagram_colors = True)
+    ax[0].plot(Yxy[i,1],Yxy[i,2],'o', markeredgecolor = 'k',label = names[i])
+    ax[0].legend()
+    luxpy.plotSL(cspace = 'Yuv', cieobs = kwargs['cieobs'], axh = ax[1], diagram_colors = True)
+    ax[1].plot(Yuv[i,1],Yuv[i,2],'o', markeredgecolor = 'k',label = names[i])
+    ax[1].legend()
+df = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T, Yuv[...,1:].T)).T, 
+                               columns = ['X', 'Y', 'Z', 'CCT', 'Duv', 'x', 'y',"u'", "v'"], 
+                               index = names) 
+__results__ = (fig, df)
+__legend__ = {'XYZ' : '*XYZ: XYZ tristimulus values*',
+          'CCT' : '*CCT: Correlated Color Temperature (K)*',
+          'Duv' : '*Duv: Distance to blackbody locus in CIE 1960 uv diagram*',
+          'xy'  : '*xy: CIE x,y chromaticity coordinates*',
+          "u'v"  : "*u'v': CIE 1976 u',v' chromaticity coordinates*"
+          }
+"""
+
+            self.code_example_basic_general = \
+"""import luxpy, pandas, numpy
+XYZ = data
+CCT, Duv = luxpy.xyz_to_cct(XYZ, cieobs = kwargs['cieobs'], out = 'cct,duv')
+Yxy = luxpy.xyz_to_Yxy(XYZ)
+Yuv = luxpy.xyz_to_Yxy(XYZ)
+__results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T, Yuv[...,1:].T)).T, 
+                               columns = ['X', 'Y', 'Z', 'CCT', 'Duv', 'x', 'y',"u'", "v'"], 
+                               index = names) 
+"""
+
             if self.input_data_type == "spd":
                 self.code_example = self.code_example_spd
                 self.code_example_basic = self.code_example_basic_spd
             elif self.input_data_type == "lid":
                 self.code_example = self.code_example_lid
                 self.code_example_basic = self.code_example_basic_lid
+            elif self.input_data_type == "general":
+                self.code_example = self.code_example_general
+                self.code_example_basic = self.code_example_basic_general
                 
             ccode_expr_text_area = st.beta_expander("Enter user code here",True)
             self.code_example_is_basic = ccode_expr_text_area.checkbox('Show basic (no plots, no legend) code example',True)
