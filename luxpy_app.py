@@ -196,7 +196,7 @@ def plot_tm30_report(data, names, **kwargs):
     code = """
     import luxpy as lx                            # imports the luxpy package 
     spds = lx.spd('spd_data_file.csv')            # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
-    spd = spds[[0, 1]]                            # select 1 single specific spd (e.g. 1st; index = row number + 1) from the array
+    spd = spds[[0, 1]]                            # select a single specific spd (e.g. 1st; index = row number + 1) from the array
     _, tm30_dict = lx.cri.plot_tm30_report(spd)   # generates report and returns a dictionary with tm30 quantities:  'Rf', 'Rg', 'Rfi', 'Rcshj', 'Rhshj', 'Rfhj', CCT, Duv, ...  
     Rf, Rg = tm30_dict['Rf'], tm30_dict['Rg']     # e.g. get color fidelity index Rf and color gamut area index Rg from tm30_dict
     """
