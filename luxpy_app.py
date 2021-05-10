@@ -59,14 +59,25 @@ def load_spectral_data():
     
     # expander with data loading:
     expdr_dload = st.sidebar.beta_expander("Upload Spectral Data",True)
-    uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt'])
+    uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt','spdx'])
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
-        df = pd.read_csv(uploaded_file, header =  header, sep = sep) # read in data
-        df.iloc[:,df.columns[1]:] = df.iloc[:,df.columns[1]:] * unit_factor # correct data for units
-        names = df.columns[1:] if (header == 'infer') else ['S{:1.0f}'.format(i+1) for i in range(len(df.columns)-1)]
-        df.columns = ['nm'] + names
+        if file_details['FileName'][-3:] in ['csv', 'dat', 'txt']:
+            df = pd.read_csv(uploaded_file, header =  header, sep = sep) # read in data
+            df.loc[:,df.columns[1]:] = df.loc[:,df.columns[1]:] * unit_factor # correct data for units
+            names = list(df.columns[1:]) if (header == 'infer') else ['S{:1.0f}'.format(i+1) for i in range(len(df.columns)-1)]
+            df.columns = ['nm'] + names
+        elif file_details['FileName'][-4:] == 'spdx':
+            stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+            spdx = lx.read_spdx(stringio)
+            possible_units = {'W' : 1.0, 'µ': 1.0e-6, 'm': 1.0e-3, 'k': 1.0e3,'M':1.0e6}
+            unit = spdx['SpectralDistribution']['SpectralQuantity'][0]
+            units = possible_units.get(unit,1.0)
+            spd = spdx['SpectralDistribution']['SpectralData'].T
+            spd[1:]  *= units
+            names = [spdx['Header']['UniqueIdentifier']]
+            df = pd.DataFrame(spd, columns = ['nm'] + names)
     else:
         df = pd.DataFrame(lx._CIE_D65.copy().T) # D65 default
         names = 'D65 (default)'
@@ -140,7 +151,8 @@ def display_spectral_input_data(df, file_details, sidebar = True):
     else:
         fig, ax = plt.subplots(figsize=(7, 3))
         plt.sca(ax)
-        lx.SPD(df.values.T).plot(wavelength_bar=False, label = df.columns[1:])
+        labels = list(df.columns[1:]) if df.shape[1] > 2 else df.columns[1]
+        lx.SPD(df.values.T).plot(wavelength_bar=False, label = labels)
         ax.legend()
         expdr_dshow.pyplot(fig)
         
