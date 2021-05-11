@@ -458,6 +458,7 @@ def setup_tm30_report_info(input_info = None):
     expdr_info = st.sidebar.beta_expander('Set additional info for report')
     source, manufacturer, date, model, notes = '', '', '', '', ''
     if input_info is not None:
+        print(input_info)
         if 'spdx' in input_info.keys():
             source = input_info['spdx']['Header']['UniqueIdentifier']
             manufacturer = input_info['spdx']['Header']['Manufacturer']
@@ -543,7 +544,12 @@ class Run:
             else:
                 self.data = self.spectra_df.values.T
                 self.names = self.spectra_df.columns[1:]
-            self.extra_input_info = {'source':self.name}
+
+            if self.extra_input_info is None:
+                self.extra_input_info = {'source':self.name}
+            else:
+                self.extra_input_info.update({'source':self.name}) 
+
         elif self.input_data_type == 'lid':
             self.data, self.file_details, self.extra_input_info = load_LID_data()
             self.name = self.file_details['FileName']
