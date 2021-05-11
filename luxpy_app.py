@@ -158,7 +158,7 @@ def display_spectral_input_data(df, file_details, sidebar = True):
         fig, ax = plt.subplots(figsize=(7, 3))
         plt.sca(ax)
         labels = list(df.columns[1:]) if df.shape[1] > 2 else df.columns[1]
-        lx.SPD(df.values.T).plot(wavelength_bar=False, label = labels)
+        lx.SPD(df.values.T).plot(wavelength_bar=True, label = labels)
         ax.legend()
         expdr_dshow.pyplot(fig)
         
