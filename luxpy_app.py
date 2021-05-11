@@ -531,6 +531,7 @@ class Run:
         # load and process spectra data:
         if isinstance(self.input_data_type,tuple):
             self.input_data_type = st.sidebar.selectbox("Input data type",self.input_data_type)
+        
         if self.input_data_type == 'spd':
             self.spectra_df, self.file_details, self.extra_input_info = load_spectral_data()
             display_spectral_input_data(self.spectra_df, self.file_details)
@@ -544,7 +545,8 @@ class Run:
             else:
                 self.data = self.spectra_df.values.T
                 self.names = self.spectra_df.columns[1:]
-
+            
+            # store 'selected' source name in extra dict (used to set source name in TM30 info):
             if self.extra_input_info is None:
                 self.extra_input_info = {'source':self.name}
             else:
