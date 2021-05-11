@@ -63,11 +63,13 @@ def load_spectral_data():
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
+        extra = None
         if file_details['FileName'][-3:] in ['csv', 'dat', 'txt']:
             df = pd.read_csv(uploaded_file, header =  header, sep = sep) # read in data
             df.loc[:,df.columns[1]:] = df.loc[:,df.columns[1]:] * unit_factor # correct data for units
             names = list(df.columns[1:]) if (header == 'infer') else ['S{:1.0f}'.format(i+1) for i in range(len(df.columns)-1)]
             df.columns = ['nm'] + names
+            extra = {'source': names}
         elif file_details['FileName'][-4:] == 'spdx':
             stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
             spdx = lx.read_spdx(stringio)
@@ -78,11 +80,13 @@ def load_spectral_data():
             spd[1:]  *= units
             names = [spdx['Header']['UniqueIdentifier']]
             df = pd.DataFrame(spd, columns = ['nm'] + names)
+            extra = {'spdx':spdx}
     else:
         df = pd.DataFrame(lx._CIE_D65.copy().T) # D65 default
         names = 'D65 (default)'
         df.columns = ['nm',names] 
-    return df, file_details
+        extra = None
+    return df, file_details, extra
 
 def load_LID_data():
     # Set title for this sidebar section:
@@ -92,6 +96,7 @@ def load_LID_data():
     expdr_dload = st.sidebar.beta_expander("Upload LID (IES/LDT) data file",True)
     uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['ies','ldt'])
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
+    extra = None
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
         stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
@@ -101,7 +106,7 @@ def load_LID_data():
         LID = None
         st.sidebar.text('No LID data file selected.')
         st.sidebar.text('Load file first!')
-    return LID, file_details
+    return LID, file_details, extra
 
 def load_dataframe():
     # Set title for this sidebar section:
@@ -120,6 +125,7 @@ def load_dataframe():
     expdr_dload = st.sidebar.beta_expander("Upload DataFrame csv file",True)
     uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt'])
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
+    extra = None
     if uploaded_file is not None:
         file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
         df = pd.read_csv(uploaded_file, header =  header, sep = sep, index_col = index_col) # read in data
@@ -134,7 +140,7 @@ def load_dataframe():
         names = ['X','Y','Z']
         df.columns = ['X','Y','Z'] 
         file_details['FileName'] = 'hard-coded'
-    return df, file_details
+    return df, file_details, extra
 
 # loaded data displayers:
 #------------------------
@@ -448,15 +454,27 @@ def set_up_df_legend(keys):
     for key in keys:
         cpt.markdown(legend_dict[key])  
         
-def setup_tm30_report_info():
+def setup_tm30_report_info(input_info = None):
     expdr_info = st.sidebar.beta_expander('Set additional info for report')
-    info = {'manufacturer' : expdr_info.text_input('Manufacturer',''),
-            'date' :  expdr_info.text_input('Date',''),
-            'model' : expdr_info.text_input('Model',''),
-            'notes' : expdr_info.text_input('Notes','')}
+    source, manufacturer, date, model, notes = '', '', '', '', ''
+    if input_info is not None:
+        if 'spdx' in input_info.keys():
+            source = input_info['spdx']['Header']['UniqueIdentifier']
+            manufacturer = input_info['spdx']['Header']['Manufacturer']
+            date = input_info['spdx']['Header']['ReportDate']
+            model = input_info['spdx']['Header']['CatalogNumber']
+            notes = input_info['spdx']['Header']['comments']
+
+        if 'source' in input_info.keys():
+            source = input_info['source']
+    info = {'source' : expdr_info.text_input('Source',source),
+            'manufacturer' : expdr_info.text_input('Manufacturer',manufacturer),
+            'date' :  expdr_info.text_input('Date',date),
+            'model' : expdr_info.text_input('Model',model),
+            'notes' : expdr_info.text_input('Notes',notes)}
     return info
 
-def setup_colorimetric_info():
+def setup_colorimetric_info(input_info = None):
     st.sidebar.markdown("### Colorimetric options:")
     info = {'cieobs' : st.sidebar.selectbox('CIE observer',[x for x in lx._CMF['types'] if (x!='cie_std_dev_obs_f1')]),
             'relative' : st.sidebar.checkbox("Relative XYZ [Ymax=100]", True, key = 'relative')
@@ -479,6 +497,7 @@ class Run:
         self.info = {'info':None}
         self.code_example = None
         self.user_code = None
+        self.extra_input_info = None 
         if self.opt == 'custom_code':
             st.markdown("**Write and run your own Luxpy code**")
             st.markdown("*Don't know how? Have a look at the FREE (Open Access) [tutorial paper in LEUKOS](https://doi.org/10.1080/15502724.2018.1518717)*")
@@ -512,7 +531,7 @@ class Run:
         if isinstance(self.input_data_type,tuple):
             self.input_data_type = st.sidebar.selectbox("Input data type",self.input_data_type)
         if self.input_data_type == 'spd':
-            self.spectra_df, self.file_details = load_spectral_data()
+            self.spectra_df, self.file_details, self.extra_input_info = load_spectral_data()
             display_spectral_input_data(self.spectra_df, self.file_details)
             self.names = list(self.spectra_df.columns[1:]) if not self.has_legend else (['all'] + list(self.spectra_df.columns[1:])) # use has_legend to determine if requested calculation can handle more than 1 spd
             self.name = st.sidebar.selectbox('Select spectrum',self.names) # create spd selector, i.e. data indentifier ('all' or column name in dataframe)
@@ -524,12 +543,13 @@ class Run:
             else:
                 self.data = self.spectra_df.values.T
                 self.names = self.spectra_df.columns[1:]
+            self.extra_input_info = {'source':self.name}
         elif self.input_data_type == 'lid':
-            self.data, self.file_details = load_LID_data()
+            self.data, self.file_details, self.extra_input_info = load_LID_data()
             self.name = self.file_details['FileName']
             self.names = [self.name]
         elif self.input_data_type == 'general':
-            self.df, self.file_details = load_dataframe()
+            self.df, self.file_details, self.extra_input_info = load_dataframe()
             display_dataframe(self.df, self.file_details)
             self.name = self.file_details['FileName']
             self.names = list(self.df.index)
@@ -538,10 +558,10 @@ class Run:
     
     def setup_info_section(self):
         if self.opt == 'tm30_report':
-            self.info = setup_tm30_report_info() 
+            self.info = setup_tm30_report_info(self.extra_input_info) 
        
         elif self.opt == 'custom_code':
-            self.info = setup_colorimetric_info()
+            self.info = setup_colorimetric_info(self.extra_input_info)
             
             self.code_example_spd = \
 """import luxpy, pandas, numpy, matplotlib.pyplot

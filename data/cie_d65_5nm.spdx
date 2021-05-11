@@ -6,11 +6,11 @@
         <Description>CIE D65 illuminant (5nm)</Description>
         <FileCreator>luxpy.spdx_iestm2714</FileCreator>
         <Laboratory>CIE</Laboratory>
-        <UniqueIdentifier>CIE D65</UniqueIdentifier>
+        <UniqueIdentifier>D65 (5nm)</UniqueIdentifier>
         <ReportNumber>Unknown</ReportNumber>
         <ReportDate>Unknown</ReportDate>
         <DocumentCreationDate>Unknown</DocumentCreationDate>
-        <comments>Unknown</comments>
+        <comments>DaylightPhase</comments>
     </Header>
     <SpectralDistribution>
         <SpectralQuantity>W/nm</SpectralQuantity>
