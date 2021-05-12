@@ -15,7 +15,8 @@ import luxpy as lx
 from luxpy.toolboxes import photbiochem as ph
 from luxpy.toolboxes import iolidfiles as lid 
 
-logo = plt.imread('LUXPY_logo_new1_small.png')
+# logo = plt.imread('LUXPY_logo_new1_small.png')
+logo = plt.imread('LUXPY__logo.jpg')
 
 __version__ = 'v0.0.27'
 
@@ -751,7 +752,7 @@ __results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T,
             expdr_code.code(self.code_example)
  
 def setup_luxpy_info():
-    st.sidebar.image(logo, width=200)
+    st.sidebar.image(logo, width=300)
     st.sidebar.markdown('## **Online calculator for lighting and color science**')
     st.sidebar.markdown('Luxpy {:s}, App {:s}'.format(lx.__version__, __version__))
     link = 'Code: [github.com/ksmet1977/luxpy](http://github.com/ksmet1977/luxpy)'
