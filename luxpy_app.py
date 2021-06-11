@@ -14,11 +14,12 @@ import copy
 import luxpy as lx
 from luxpy.toolboxes import photbiochem as ph
 from luxpy.toolboxes import iolidfiles as lid 
+from luxpy.toolboxes import sherbrooke_spectral_indices as sherbrooke
 
 # logo = plt.imread('LUXPY_logo_new1_small.png')
 logo = plt.imread('LUXPY_logo3.jpg')
 
-__version__ = 'v0.0.27'
+__version__ = 'v0.0.28'
 
 def get_table_download_link_csv(df):
     csv = df.to_csv().encode()
@@ -219,7 +220,10 @@ legend_dict =  {'XYZ' : '*XYZ: CIE X,Y,Z tristimulus values*',
                 'Ee' :  '*Ee: irradiance (W/m²)*',
                 'EDI' : '*EDI: Equivalent Daylight Illuminance (lux)*',
                 'DER' : '*DER: Daylight Efficacy Ratio*',
-                'ELR' : '*ELR: Efficacy of Luminous Radiation (W/lm)*'}
+                'ELR' : '*ELR: Efficacy of Luminous Radiation (W/lm)*',
+                'MSI' : '*MSI: Melatonin Suppression Index*',
+                'IPI' : '*IPI: Induced Photosynthesis Index*',
+                'SLI' : '*SLI: Star Light Index*'}
 
 
 
@@ -405,6 +409,34 @@ def plot_ies_ldt_lid(LID, names, **kwargs):
     
     return (None, None, code, fig)
 
+def calc_sherbrooke_spectral_indices(data, names, **kwargs):
+    """ 
+    See Aubé M, Roby J, Kocifaj M (2013). 
+    Evaluating Potential Spectral Impacts of Various Artificial Lights on Melatonin Suppression, Photosynthesis, and Star Visibility. 
+    PLoS ONE 8(7): e67798
+    """
+    force_5nm_interval = kwargs.get('force_5nm_interval', 5)
+    
+    msi = sherbrooke.spd_to_msi(data, force_5nm_interval)
+    ipi = sherbrooke.spd_to_ipi(data, force_5nm_interval)
+    sli = sherbrooke.spd_to_sli(data, force_5nm_interval)
+    
+    quants = ['MSI','IPI','SLI'] 
+    df_res = pd.DataFrame(np.vstack((msi.T,ipi.T, sli.T)).T,
+                           columns = quants,
+                           index = names)
+    legend =  ['MSI','IPI','SLI']
+    code = """
+    import luxpy as lx                                                # imports the luxpy package 
+    from luxpy.toolboxes import sherbrooke_spectral_indices as sb     # import sherbrooke spectral index toolbox
+    spd = lx.spd('spd_data_file.csv')                                 # returns a numpy array with spectral data in csv-file with filename 'spd_data_file.csv'
+    msi = sb.spd_to_msi(spd)                                          # returns the Melatonin Suppression Index
+    ipi = sb.spd_to_ipi(spd)                                          # returns the Induced Photosynthesis Index
+    sli = sb.spd_to_sli(spd)                                          # returns the Star Light Index
+    """
+    return df_res, legend, code, None
+
+
 def custom_code(data, names, code, **kwargs):
     __tmp__ = {}
     __legend__ = None # for legend
@@ -446,6 +478,7 @@ run_options = {'' : ('', None, None, False, ''),
                'CIE 224:2017 Rf, Rfi quantities': ('cierf', calc_cierf_quants, 'spd', True,'**CIE 224:2017 Rf, Rfi quantities**'),
                "SPD->(X,Y,Z), (x,y), (u',v'), (CCT,Duv)" :('colorimetric_quants',calc_colorimetric_quants, 'spd', True,"**Colorimetric quantities: (X,Y,Z), (x,y), (u',v'), (CCT,Duv)**"),
                'Alpha-opic quantities (CIE S026)' : ('cies2036_quants', calc_cies026_quants, 'spd', True, 'Alpha-opic quantities (CIE S026)'),
+               "MSI, IPI, SLI (Aubé et al. 2013, PLoSONE)" : ('calc_sherbrooke_spectral_indices', calc_sherbrooke_spectral_indices, 'spd',True,"MSI, IPI, SLI (Aubé et al. 2013, PLoSONE)"),
                'Plot Luminous Intensity Distribution (IES/LDT files)' : ('lid_plots', plot_ies_ldt_lid, 'lid', False, '**Luminous Intensity Distiribution (polar plot and render)**'),
                'Write your own code' : ('custom_code', custom_code, ('spd','lid','general'), True, '**Output of user generated code**')
                }
@@ -480,6 +513,12 @@ def setup_colorimetric_info(input_info = None):
     st.sidebar.markdown("### Colorimetric options:")
     info = {'cieobs' : st.sidebar.selectbox('CIE observer',[x for x in lx._CMF['types'] if (x!='cie_std_dev_obs_f1')]),
             'relative' : st.sidebar.checkbox("Relative XYZ [Ymax=100]", True, key = 'relative')
+            }
+    return info
+
+def setup_sherbrook_info():
+    st.sidebar.markdown("### Calculation options:")
+    info = {'force_5nm_interval' : st.sidebar.checkbox("Interpolate spectral data to 5 nm interval", True, key = 'force_5nm_interval')
             }
     return info
 
@@ -693,6 +732,9 @@ __results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T,
                                                          height = text_area_height)
             ccode_expr_code = st.beta_expander("Check user code with Python language highlighting",False)
             ccode_expr_code.code(self.custom_code)
+        
+        elif self.opt == 'calc_sherbrooke_spectral_indices':
+            self.info = setup_sherbrook_info()
         
         else:
             if self.opt in ('colorimetric_quants', 'cies2036_quants'):
