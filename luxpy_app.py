@@ -52,7 +52,7 @@ def load_spectral_data():
     st.sidebar.markdown("### Load spectral data:")
     
     # expander with data format options:
-    expdr_dopts = st.sidebar.beta_expander("Data-format options")
+    expdr_dopts = st.sidebar.expander("Data-format options")
     expdr_dopts.checkbox("Column format", True, key = 'options')
     units = expdr_dopts.selectbox('Units',['W/nm [,.m²,.m².sr, ...]','mW/nm [,.m²,.m².sr, ...]' ])
     unit_factor = 1.0 if units == 'W/nm [,.m²,.m².sr, ...]' else 1/1000
@@ -60,7 +60,7 @@ def load_spectral_data():
     sep = expdr_dopts.selectbox('Separator',[',','\t',';'])
     
     # expander with data loading:
-    expdr_dload = st.sidebar.beta_expander("Upload Spectral Data",True)
+    expdr_dload = st.sidebar.expander("Upload Spectral Data",True)
     uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt','spdx'])
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
     if uploaded_file is not None:
@@ -95,7 +95,7 @@ def load_LID_data():
     st.sidebar.markdown("""---""")
     st.sidebar.markdown("### Load LID data:")
     
-    expdr_dload = st.sidebar.beta_expander("Upload LID (IES/LDT) data file",True)
+    expdr_dload = st.sidebar.expander("Upload LID (IES/LDT) data file",True)
     uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['ies','ldt'])
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
     extra = None
@@ -116,7 +116,7 @@ def load_dataframe():
     st.sidebar.markdown("### Load dataframe:")
     
     # expander with data format options:
-    expdr_dopts = st.sidebar.beta_expander("Data-format options")
+    expdr_dopts = st.sidebar.expander("Data-format options")
     expdr_dopts.checkbox("Column format", True, key = 'options')
     header = 'infer' if expdr_dopts.checkbox("Data file has header", False, key = 'header') else None
     index_col = 0 if expdr_dopts.checkbox("First Column is Index", False, key = 'col_index') else None
@@ -124,7 +124,7 @@ def load_dataframe():
     sep = expdr_dopts.selectbox('Separator',[',','\t',';'])
     
     # expander with data loading:
-    expdr_dload = st.sidebar.beta_expander("Upload DataFrame csv file",True)
+    expdr_dload = st.sidebar.expander("Upload DataFrame csv file",True)
     uploaded_file = expdr_dload.file_uploader("",accept_multiple_files=False,type=['csv','dat','txt'])
     file_details = {"FileName":'',"FileType":'',"FileSize":''}
     extra = None
@@ -150,7 +150,7 @@ def load_dataframe():
 placeholder_spdselector = None
 def display_spectral_input_data(df, file_details, sidebar = True):
     st.sidebar.markdown('### Input data:')
-    expdr_dshow = st.sidebar.beta_expander('Show input data') if sidebar  else st.beta_expander('Show input data')      
+    expdr_dshow = st.sidebar.expander('Show input data') if sidebar  else st.expander('Show input data')      
     display = expdr_dshow.selectbox("Display format", ('Graph','DataFrame'))
 
     expdr_dshow.write(file_details)
@@ -167,7 +167,7 @@ def display_spectral_input_data(df, file_details, sidebar = True):
 placeholder_indexselector = None
 def display_dataframe(df, file_details, sidebar = True):
     st.sidebar.markdown('### Input dataframe:')
-    expdr_dshow = st.sidebar.beta_expander('Show input dataframe') if sidebar  else st.beta_expander('Show input dataframe')      
+    expdr_dshow = st.sidebar.expander('Show input dataframe') if sidebar  else st.expander('Show input dataframe')      
     expdr_dshow.write(file_details)
     expdr_dshow.dataframe(df)
 
@@ -484,12 +484,12 @@ run_options = {'' : ('', None, None, False, ''),
                }
 
 def set_up_df_legend(keys):
-    cpt = st.beta_expander('Table legend')
+    cpt = st.expander('Table legend')
     for key in keys:
         cpt.markdown(legend_dict[key])  
         
 def setup_tm30_report_info(input_info = None):
-    expdr_info = st.sidebar.beta_expander('Set additional info for report')
+    expdr_info = st.sidebar.expander('Set additional info for report')
     source, manufacturer, date, model, notes = '', '', '', '', ''
     if input_info is not None:
         print(input_info)
@@ -542,7 +542,7 @@ class Run:
         if self.opt == 'custom_code':
             st.markdown("**Write and run your own Luxpy code**")
             st.markdown("*Don't know how? Have a look at the FREE (Open Access) [tutorial paper in LEUKOS](https://doi.org/10.1080/15502724.2018.1518717)*")
-            ccode_expdr = st.beta_expander('!!! READ ME !!!')
+            ccode_expdr = st.expander('!!! READ ME !!!')
             ccode_expdr.text("Write your own code in the field below.")
             ccode_expdr.text("""
                              - Uploaded data is available in the variable `data`.
@@ -723,14 +723,14 @@ __results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T,
                 self.code_example = self.code_example_general
                 self.code_example_basic = self.code_example_basic_general
                 
-            ccode_expr_text_area = st.beta_expander("Enter user code here",True)
+            ccode_expr_text_area = st.expander("Enter user code here",True)
             self.code_example_is_basic = ccode_expr_text_area.checkbox('Show basic (no plots, no legend) code example',True)
             code_example = self.code_example_basic if self.code_example_is_basic else self.code_example
             text_area_height = 200 if self.code_example_is_basic else 300
             self.custom_code = ccode_expr_text_area.text_area("Press ctrl-enter to load code!!!", 
                                                          value = code_example, 
                                                          height = text_area_height)
-            ccode_expr_code = st.beta_expander("Check user code with Python language highlighting",False)
+            ccode_expr_code = st.expander("Check user code with Python language highlighting",False)
             ccode_expr_code.code(self.custom_code)
         
         elif self.opt == 'calc_sherbrooke_spectral_indices':
@@ -790,7 +790,7 @@ __results__ = pandas.DataFrame(numpy.vstack((XYZ.T, CCT.T, Duv.T, Yxy[...,1:].T,
             st.markdown(get_table_download_link_csv(self.df_result), unsafe_allow_html=True)   
 
         if (self.code_example is not None) & (self.opt != 'custom_code'):
-            expdr_code = st.beta_expander('Luxpy Coding Tutorial: show simple code example that generates output',False)
+            expdr_code = st.expander('Luxpy Coding Tutorial: show simple code example that generates output',False)
             expdr_code.code(self.code_example)
  
 def setup_luxpy_info():
