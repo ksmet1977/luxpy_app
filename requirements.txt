@@ -2,4 +2,4 @@ numpy
 pandas
 matplotlib
 streamlit
-luxpy==1.7.1
+luxpy==1.7.2
