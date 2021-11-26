@@ -3,4 +3,4 @@ pandas
 matplotlib
 streamlit
 luxpy==1.9.3
-imageio=2.10.0
+imageio==2.10.0
