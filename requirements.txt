@@ -2,5 +2,5 @@ numpy
 pandas
 matplotlib
 streamlit
-luxpy>=1.11.1
+luxpy>=1.11.2
 imageio==2.9.0
